@@ -1,0 +1,34 @@
+# Ambiente Python
+.venv/
+__pycache__/
+*.pyc
+.idea/
+.claude/
+.DS_Store
+
+# === Pesos dos adapters ===
+# Só o adapter ATUAL (v9, ~83M) entra — é o que faz a ADA funcionar.
+*.safetensors
+!1_modelo/ada_v9_9b/adapters.safetensors
+# Versões antigas fora (v5 tem 165M e nem caberia no GitHub; v6/v7 são histórico).
+1_modelo/ada_v5/
+1_modelo/ada_v6_9b/
+1_modelo/ada_v7_9b/
+
+# Voz pessoal (referência de clonagem) e áudios temporários
+4_voz/voz_ada.wav
+4_voz/_fala_*.wav
+
+# Runtime / temporários
+*.log
+**/screenshot_*.png
+
+# Material didático/pessoal do Victor (não sobe — é pra estudo dele, não pro mundo)
+# docs/ = os DOCX + geradores; README.md por pasta = guias internos.
+# O !/README.md reativa SÓ o README da raiz (o cartão de visita do repo).
+docs/
+**/README.md
+!/README.md
+
+# Treino + dataset = proprietários (o "molho" da ADA — não entra na vitrine)
+2_treino/
