@@ -29,6 +29,9 @@ __pycache__/
 docs/
 **/README.md
 !/README.md
+# Arquivos de estudo que o Claude criou pra ensinar (didáticos, não produto)
+7_interface/exemplo_fila.py
+7_interface/server_EXPLICADO.py
 
 # Treino + dataset = proprietários (o "molho" da ADA — não entra na vitrine)
 2_treino/
