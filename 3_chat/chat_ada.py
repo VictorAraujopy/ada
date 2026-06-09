@@ -23,7 +23,7 @@ import cerebro_tools as ct  # runtime de tools: gera, executa a tool se houver, 
 
 MODELO = "mlx-community/Qwen3.5-9B-MLX-4bit"
 # ADA_ADAPTER escolhe a versão (default v6_9b, o 9B treiwnado na nuvem); ADA_ADAPTER=ada_v5 volta pro antigo
-ADAPTER = str(RAIZ / "1_modelo" / os.environ.get("ADA_ADAPTER", "ada_v9_9b"))
+ADAPTER = str(RAIZ / "1_modelo" / os.environ.get("ADA_ADAPTER", "ada_v10_9b"))
 _BASE = "" if os.environ.get("ADA_BASE", "on") == "off" else "\n\n" + carregar_conhecimento()
 SYSTEM = "Usuário atual: Victor, seu criador. Seja direta e objetiva não invente informações."
 MAX_TOKENS = 4096          # solto: nunca corta o think+resposta; teto so de seguranca (anti-loop)

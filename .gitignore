@@ -7,13 +7,14 @@ __pycache__/
 .DS_Store
 
 # === Pesos dos adapters ===
-# Só o adapter ATUAL (v9, ~83M) entra — é o que faz a ADA funcionar.
+# Só o adapter ATUAL (v10, ~83M) entra — é o que faz a ADA funcionar.
 *.safetensors
-!1_modelo/ada_v9_9b/adapters.safetensors
-# Versões antigas fora (v5 tem 165M e nem caberia no GitHub; v6/v7 são histórico).
+!1_modelo/ada_v10_9b/adapters.safetensors
+# Versões antigas fora (v5 tem 165M e nem caberia no GitHub; v6/v7/v9 são histórico).
 1_modelo/ada_v5/
 1_modelo/ada_v6_9b/
 1_modelo/ada_v7_9b/
+1_modelo/ada_v9_9b/
 
 # Voz pessoal (referência de clonagem) e áudios temporários
 4_voz/voz_ada.wav

@@ -28,7 +28,7 @@ import cerebro_tools as ct  # reaproveita o runtime de tools (responder_eventos)
 
 
 MODELO = "mlx-community/Qwen3.5-9B-MLX-4bit"
-ADAPTER = str(RAIZ / "1_modelo" / os.environ.get("ADA_ADAPTER", "ada_v9_9b"))
+ADAPTER = str(RAIZ / "1_modelo" / os.environ.get("ADA_ADAPTER", "ada_v10_9b"))
 SYSTEM = "Usuário atual: Victor, seu criador."
 GEN = dict(max_tokens=4096, temperature=0.6, top_p=0.9, repetition_penalty=1.05)
 
