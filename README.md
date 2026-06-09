@@ -1,14 +1,12 @@
 
 
-https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
-
 # ADA
 
 > A personal AI that runs **entirely on a Mac** — no cloud, no API, nothing ever leaves the machine.
 
 ADA's personality isn't a system prompt — it's **trained into the weights**. A LoRA adapter fine-tuned on top of **Qwen3.5-9B** gives her her own voice, opinions and taste, and she's wired to **act on macOS**. The goal: a real personal AI, not a generic assistant playing a role. *(The name comes from Ada Wong, of Resident Evil.)*
 
-<!-- DEMO: drag your screen-recording (.mp4/.gif) into the GitHub README editor right here — it uploads and embeds automatically. This is the highest-impact spot on the page. -->
+<!-- [DEMO: drag your screen-recording (.mp4/.gif) into the GitHub README editor right here — it uploads and embeds automatically. This is the highest-impact spot on the page](https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9). -->
 
 ## What she does
 
