@@ -20,7 +20,7 @@ ADA's personality isn't a system prompt — it's **trained into the weights**. A
 |---|---|
 | Base model | Qwen3.5-9B |
 | Personality adapter | **43M params — 0.48% of the model** |
-| Training data | 4,545 hand-built examples |
+| Training data | 4,537 curated examples |
 | Runtime | Apple Silicon · MLX · 4-bit |
 | Cloud / API at runtime | **none — fully offline** |
 
