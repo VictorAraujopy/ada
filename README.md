@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
+
 # ADA
 
 > A personal AI that runs **entirely on a Mac** — no cloud, no API, nothing ever leaves the machine.
