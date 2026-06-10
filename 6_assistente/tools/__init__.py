@@ -1,6 +1,6 @@
 """
 Pacote das ferramentas reais da ADA. Junta as tools de cada categoria num unico
-dicionario EXECUTORES (nome-da-tool -> funcao), que o runtime (cerebro_tools) usa
+dicionario EXECUTORES (nome-da-tool -> funcao), que o runtime (cerebro) usa
 pra achar e rodar a funcao certa.
 
 Adicionar tool nova:

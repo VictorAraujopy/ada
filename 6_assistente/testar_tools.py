@@ -10,16 +10,11 @@ As outras sao leitura/inofensivas.
 import sys
 from pathlib import Path
 
-from mlx_vlm import load
-from mlx_vlm.trainer.utils import apply_lora_layers
-
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ / "6_assistente"))
-import cerebro_tools as ct
+import cerebro  # núcleo da ADA
 
-MODELO = "mlx-community/Qwen3.5-9B-MLX-4bit"
-ADAPTER = str(RAIZ / "1_modelo" / "ada_v6_9b")
-SYSTEM = "Usuário atual: Victor, seu criador."
+SYSTEM = cerebro.SYSTEM
 
 PEDIDOS = [
     "bom dia, ada",                # CONVERSA -> ver se o tom continua bom com thinking ON
@@ -31,17 +26,15 @@ PEDIDOS = [
 
 
 def main():
-    print("Carregando 9B + adapter v6...")
-    model, processor = load(MODELO, processor_config={"trust_remote_code": True})
-    config = model.config.__dict__
-    model = apply_lora_layers(model, ADAPTER)
+    print(f"Carregando 9B + adapter {Path(cerebro.ADAPTER).name}...")
+    model, processor, config = cerebro.carregar()
     print("pronto.\n" + "=" * 60, flush=True)
 
     for p in PEDIDOS:
         hist = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": p}]
-        resp, passo = ct.responder(model, processor, config, hist,
-                                   max_tokens=256, temperature=0.6, top_p=0.9,
-                                   repetition_penalty=1.05)
+        resp, passo = cerebro.responder(model, processor, config, hist,
+                                        max_tokens=256, temperature=0.6, top_p=0.9,
+                                        repetition_penalty=1.05)
         print(f"VOCE> {p}", flush=True)
         if passo:
             for nome, args, resultado in passo:   # passo e uma LISTA (a ADA pode chamar varias tools)

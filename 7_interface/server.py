@@ -1,95 +1,217 @@
 """
-Interface web da ADA — SO pra gravar o video do LinkedIn (nao e producao, e descartavel).
-Backend minimo: carrega a ADA e streama os eventos (pensar -> tools -> falar) via SSE.
+Interface web da ADA — backend.
 
-    .venv/bin/python 7_interface/server.py
-    # depois abre http://localhost:8000 no navegador
+Arquitetura: o MLX precisa de UMA thread dona do modelo, então um worker único
+consome uma fila de jobs. Cada POST /chat vira um job com a SUA fila de saída —
+o endpoint streama os eventos dela via SSE, e conversas não se misturam.
 
-Trocar de versao:  ADA_ADAPTER=ada_v9_9b .venv/bin/python 7_interface/server.py
+As conversas vivem no SQLite (armazem.py): sobrevivem a F5 e a reinício do
+servidor. O histórico que vai pro modelo é remontado do banco a cada turno.
+
+O cérebro é caixa-preta aqui: tudo passa por cerebro_tools.responder_eventos().
+
+Rodar:
+    .venv/bin/python 7_interface/server.py        # abre http://localhost:8000
+Trocar de versão:   ADA_ADAPTER=ada_v9_9b .venv/bin/python 7_interface/server.py
+Testar a interface SEM carregar o 9B (eventos de mentira, resposta na hora):
+    ADA_FAKE=1 .venv/bin/python 7_interface/server.py
 """
 import json
 import os
 import queue
 import sys
-from pathlib import Path
 import threading
+import time
+from dataclasses import dataclass, field
+from pathlib import Path
+
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse, HTMLResponse
-import json
-from mlx_vlm import load
-from mlx_vlm.trainer.utils import apply_lora_layers
-pedidos = queue.Queue()
-saida = queue.Queue()
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+
+import armazem
+
 RAIZ = Path(__file__).resolve().parent.parent
 AQUI = Path(__file__).resolve().parent
 sys.path.insert(0, str(RAIZ / "6_assistente"))
-import cerebro_tools as ct  # reaproveita o runtime de tools (responder_eventos)
+
+FAKE = os.environ.get("ADA_FAKE") == "1"
+
+# Config, system prompt e params de geração vivem TODOS no núcleo (6_assistente/cerebro.py).
+# Aqui o backend só importa e repassa. No modo FAKE o núcleo nem é carregado (sem MLX), então
+# o SYSTEM fica vazio (os eventos de mentira ignoram); o worker o preenche ao carregar de verdade.
+ADAPTER = str(RAIZ / "1_modelo" / os.environ.get("ADA_ADAPTER", "ada_v10_9b"))  # só pro /info
+SYSTEM = ""  # preenchido pelo worker com cerebro.SYSTEM quando o modelo carrega
 
 
-MODELO = "mlx-community/Qwen3.5-9B-MLX-4bit"
-ADAPTER = str(RAIZ / "1_modelo" / os.environ.get("ADA_ADAPTER", "ada_v10_9b"))
-SYSTEM = "Usuário atual: Victor, seu criador."
-GEN = dict(max_tokens=4096, temperature=0.6, top_p=0.9, repetition_penalty=1.05)
+@dataclass
+class Job:
+    historico: list                                          # snapshot da conversa
+    saida: queue.Queue = field(default_factory=queue.Queue)  # eventos só deste job
+
+
+jobs = queue.Queue()
+pronta = threading.Event()
+
+
+def _eventos_fake(historico):
+    """Eventos de mentira (think -> tool -> resp) pra testar a UI sem o 9B."""
+    msg = historico[-1]["content"]
+    pensamento = (f'O Victor mandou "{msg}". Modo fake ligado, então eu não penso de '
+                  f'verdade — só finjo bem. Vou fingir uma tool também. ')
+    for palavra in pensamento.split(" "):
+        time.sleep(0.03)
+        yield {"t": "think", "d": palavra + " "}
+    yield {"t": "tool", "nome": "que_horas", "args": {}, "res": "segunda, 09/06/2026, 16:20"}
+    resposta = ("Interface de ponta a ponta, com **negrito**, `código` e\n"
+                "- até lista\n- funcionando.\n\nQuando for pra valer, tira o ADA_FAKE=1. ")
+    for palavra in resposta.split(" "):
+        time.sleep(0.04)
+        yield {"t": "resp", "d": palavra + " "}
+    yield {"t": "fim"}
+
 
 def worker():
-    print(f"[interface] carregando a ADA ({Path(ADAPTER).name})... (uns 30-60s)")
-    model, processor = load(MODELO, processor_config={"trust_remote_code": True})
-    config = model.config.__dict__
-    model = apply_lora_layers(model, ADAPTER)
-    print("[interface] PRONTA  ->  abre http://localhost:8000")
+    """Thread única dona do modelo: carrega uma vez e processa um job por vez."""
+    global SYSTEM
+    if FAKE:
+        gerar = _eventos_fake
+        print("[interface] MODO FAKE — sem modelo, eventos de mentira")
+    else:
+        import cerebro  # núcleo da ADA (só carrega o MLX fora do modo FAKE)
+
+        SYSTEM = cerebro.SYSTEM
+        print(f"[interface] carregando a ADA ({Path(cerebro.ADAPTER).name})... (uns 30-60s)")
+        model, processor, config = cerebro.carregar()
+
+        def gerar(historico):
+            return cerebro.responder_eventos(model, processor, config, historico, **cerebro.GEN)
+
+    pronta.set()
+    print("[interface] PRONTA  ->  http://localhost:8000")
 
     while True:
-        msg = pedidos.get()
+        job = jobs.get()
+        try:
+            for ev in gerar(job.historico):
+                job.saida.put(ev)
+        except Exception as e:
+            job.saida.put({"t": "erro", "d": f"{type(e).__name__}: {e}"})
+        finally:
+            job.saida.put(None)   # sinal de fim pro endpoint, aconteça o que acontecer
 
-        resposta = ""
-        for ev in ct.responder_eventos(model, processor, config, historico, **GEN):
-            if ev["t"] == "resp":
-                resposta += ev["d"]
-            saida.put(ev)
-
-        historico.append({"role": "assistant", "content": resposta.strip()})
-        #for pedaco in resposta:
-            #saida.put(pedaco)
-        saida.put(None)
 
 app = FastAPI()
-historico = [{"role": "system", "content": SYSTEM}]
+app.mount("/static", StaticFiles(directory=AQUI / "static"), name="static")
 threading.Thread(target=worker, daemon=True).start()
+
 
 @app.get("/")
 def index():
-    return HTMLResponse((AQUI / "index.html").read_text(encoding="utf-8"))
+    return FileResponse(AQUI / "index.html")
 
 
-@app.post("/reset")
-def reset():
-    """Limpa a conversa — util entre os takes da gravacao."""
-    global historico
-    historico = [{"role": "system", "content": SYSTEM}]
+@app.get("/info")
+def info():
+    """A UI consulta isto pra saber se já pode liberar o input."""
+    return {"pronta": pronta.is_set(), "adapter": Path(ADAPTER).name,
+            "fake": FAKE, "fila": jobs.qsize()}
+
+
+@app.get("/conversas")
+def conversas():
+    return armazem.listar()
+
+
+@app.post("/conversas")
+async def criar_conversa(req: Request):
+    corpo = await req.json()
+    return armazem.criar(corpo.get("titulo", ""))
+
+
+@app.get("/conversas/{cid}")
+def abrir_conversa(cid: str):
+    if not armazem.existe(cid):
+        return JSONResponse({"erro": "conversa não existe"}, status_code=404)
+    return {"id": cid, "titulo": armazem.titulo(cid), "mensagens": armazem.mensagens(cid)}
+
+
+@app.patch("/conversas/{cid}")
+async def renomear_conversa(cid: str, req: Request):
+    if not armazem.existe(cid):
+        return JSONResponse({"erro": "conversa não existe"}, status_code=404)
+    novo = armazem.renomear(cid, (await req.json()).get("titulo", ""))
+    if not novo:
+        return JSONResponse({"erro": "título vazio"}, status_code=400)
+    return {"ok": True, "titulo": novo}
+
+
+@app.delete("/conversas/{cid}")
+def apagar_conversa(cid: str):
+    armazem.apagar(cid)
     return {"ok": True}
 
 
+@app.get("/conversas/{cid}/export")
+def exportar(cid: str):
+    """Baixa a conversa em markdown (pra post, demo, arquivo)."""
+    if not armazem.existe(cid):
+        return JSONResponse({"erro": "conversa não existe"}, status_code=404)
+    linhas = [f"# ADA — {armazem.titulo(cid)}", ""]
+    for m in armazem.mensagens(cid):
+        if m["role"] == "user":
+            linhas += [f"**Victor:** {m['content']}", ""]
+        else:
+            for t in (m["meta"] or {}).get("tools", []):
+                linhas.append(f"> 🔧 `{t['nome']}` → {t['res']}")
+            linhas += [f"**ADA:** {m['content']}", ""]
+    return Response("\n".join(linhas), media_type="text/markdown; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="ada_{cid}.md"'})
 
 
 @app.post("/chat")
 async def chat(req: Request):
-    msg = (await req.json()).get("msg", "").strip()
-    historico.append({"role": "user", "content": msg})
-    pedidos.put(msg)
+    corpo = await req.json()
+    cid = corpo.get("conversa", "")
+    msg = (corpo.get("msg") or "").strip()
+    if not msg or not armazem.existe(cid):
+        return JSONResponse({"erro": "faltou msg ou a conversa não existe"}, status_code=400)
+    if not pronta.is_set():
+        return JSONResponse({"erro": "a ADA ainda está carregando"}, status_code=503)
+
+    armazem.gravar(cid, "user", msg)
+    # o histórico do modelo é remontado do banco: system + turnos (sem os metas)
+    historico = ([{"role": "system", "content": SYSTEM}] +
+                 [{"role": m["role"], "content": m["content"]} for m in armazem.mensagens(cid)])
+    job = Job(historico=historico)
+    jobs.put(job)
 
     def stream():
+        resposta, think, tools = "", "", []
+        t0, t_resp = time.time(), None
         while True:
-            pedaco = saida.get()
-
-            if pedaco is None:
+            ev = job.saida.get()
+            if ev is None:
                 break
-            pedacojson = json.dumps(pedaco)
-            yield f"data: {pedacojson}\n\n"
+            if ev["t"] == "think":
+                think += ev["d"]
+            elif ev["t"] == "tool":
+                tools.append({"nome": ev["nome"], "res": str(ev["res"])[:200]})
+            elif ev["t"] == "resp":
+                t_resp = t_resp or time.time()
+                resposta += ev["d"]
+            yield f"data: {json.dumps(ev)}\n\n"
+        if resposta.strip():   # só entra na memória da conversa se chegou inteira
+            meta = {"pensou_s": round((t_resp or time.time()) - t0, 1),
+                    "respondeu_s": round(time.time() - (t_resp or time.time()), 1),
+                    "tools": tools, "think": think.strip()}
+            armazem.gravar(cid, "assistant", resposta.strip(), meta)
 
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000, log_level="warning")
+    uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("ADA_PORT", 8000)),
+                log_level="warning")

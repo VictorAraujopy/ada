@@ -23,6 +23,7 @@ __pycache__/
 # Runtime / temporários
 *.log
 **/screenshot_*.png
+7_interface/conversas.db*
 
 # Material didático/pessoal do Victor (não sobe — é pra estudo dele, não pro mundo)
 # docs/ = os DOCX + geradores; README.md por pasta = guias internos.

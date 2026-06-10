@@ -2,12 +2,15 @@
 Chat com a ADA por VOZ: voce digita, ela responde FALANDO.
 
 Três etapas:
-  - PENSAR:   Qwen3.5-9B + LoRA (1_modelo/ada_v6_9b) -> responde em PORTUGUES, onde a ADA
-              e ela mesma (sabe o nome, o tom, a favorita).
+  - PENSAR:   cérebro da ADA (6_assistente/cerebro.py) -> responde em PORTUGUES, onde a
+              ADA e ela mesma (sabe o nome, o tom, a favorita).
   - TRADUZIR: argostranslate PT->EN -> a fala sai sem sotaque (a voz e clonada em EN).
   - FALAR:    Qwen3-TTS 4bit -> clona a voz dela (4_voz/voz_ada.wav) e fala o ingles.
 
 No terminal voce ve a resposta em PT (a ADA real); a voz toca em EN.
+
+Este modulo e o WRAPPER de voz em volta do nucleo: re-expoe SYSTEM/carregar/responder
+(do cerebro) ja com a voz junto, pra ada_voz.py e ada.py (o daemon) so importarem daqui.
 
 Rodar, da raiz do projeto:
     .venv/bin/python 4_voz/chat_voz.py
@@ -21,32 +24,16 @@ from pathlib import Path
 import numpy as np
 from scipy.io.wavfile import write as wav_write
 
-from mlx_vlm import load, generate
-from mlx_vlm.prompt_utils import apply_chat_template
-from mlx_vlm.trainer.utils import apply_lora_layers
 from mlx_audio.tts.utils import load_model
 import mlx.core as mx
 import argostranslate.translate
 
 RAIZ = Path(__file__).resolve().parent.parent
 VOZ_DIR = Path(__file__).resolve().parent
-sys.path.insert(0, str(RAIZ / "5_conhecimento"))
-from conhecimento import carregar_conhecimento  # base de fatos confiáveis
 sys.path.insert(0, str(RAIZ / "6_assistente"))
-import cerebro_tools as ct  # runtime de tools (mesmo do chat de texto)
+import cerebro  # núcleo da ADA: config, system, carregar, runtime de tools
 
-# --- cerebro (pensar) ---
-CEREBRO = "mlx-community/Qwen3.5-9B-MLX-4bit"
-# ADA_ADAPTER escolhe a versão (default v6_9b, o 9B treinado na nuvem); ADA_ADAPTER=ada_v5 volta pro antigo
-ADAPTER = str(RAIZ / "1_modelo" / os.environ.get("ADA_ADAPTER", "ada_v6_9b"))
-_BASE = "" if os.environ.get("ADA_BASE", "on") == "off" else "\n\n" + carregar_conhecimento()
-SYSTEM = ("Usuário atual: Victor, seu criador. Você responde por voz, então vá direto ao "
-          "ponto. Se o pedido pede uma ferramenta (hora, status, app, música...), use a "
-          "ferramenta — você não tem relógio nem sensores próprios." + _BASE)
-MAX_TOKENS = 4096          # solto: nunca corta; teto so de seguranca (anti-loop)
-TEMPERATURE = 0.5
-TOP_P = 0.8                # corta a cauda improvavel (evita alucinacao/frase quebrada) sem ficar decorado
-REPETITION_PENALTY = 1.05
+SYSTEM = cerebro.SYSTEM_VOZ  # personalidade canônica + instrução de fala (definida no núcleo)
 
 # --- voz (falar) ---
 VOZ_MODELO = "mlx-community/Qwen3-TTS-12Hz-0.6B-Base-4bit"  # 4bit: ~1.9x tempo real (bf16 dava 0.44x), mesma voz
@@ -61,21 +48,16 @@ BLOCO_CHARS = 100
 
 
 def carregar():
+    """Carrega o cérebro (via núcleo) + o modelo de voz. Retorna (model, processor, config, voz_model)."""
     _b = "OFF (teste puro)" if os.environ.get("ADA_BASE", "on") == "off" else "ON"
-    print(f"[ADAPTER: {Path(ADAPTER).name} | base de conhecimento: {_b}]")
-    model, processor = load(CEREBRO, processor_config={"trust_remote_code": True})
-    config = model.config.__dict__
-    model = apply_lora_layers(model, ADAPTER)
+    print(f"[ADAPTER: {Path(cerebro.ADAPTER).name} | base de conhecimento: {_b}]")
+    model, processor, config = cerebro.carregar()
     voz_model = load_model(VOZ_MODELO)
     return model, processor, config, voz_model
 
 
 def responder(model, processor, config, historico):
-    resposta, passo = ct.responder(
-        model, processor, config, historico,
-        max_tokens=MAX_TOKENS, temperature=TEMPERATURE, top_p=TOP_P,
-        repetition_penalty=REPETITION_PENALTY,
-    )
+    resposta, passo = cerebro.responder(model, processor, config, historico, **cerebro.GEN)
     if passo:  # log das tools executadas (nome -> resultado)
         for t_nome, _, t_res in passo:
             print(f"  [tool: {t_nome} -> {t_res}]", flush=True)

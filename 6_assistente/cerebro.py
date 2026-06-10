@@ -1,5 +1,15 @@
 """
-Runtime de tool-calling da ADA: conecta o cerebro (9B) as funcoes reais (tools_reais.py).
+Cérebro da ADA — núcleo único.
+
+Tudo que define "quem é a ADA" e como ela pensa mora aqui:
+  - config do modelo (base + adapter LoRA)
+  - system prompt (com a variação pra voz)
+  - carregar() do cérebro
+  - runtime de tools (responder / responder_stream / responder_eventos)
+
+As interfaces (terminal, voz, web, testes) só importam este módulo, montam o
+histórico e chamam um dos responder(). Pra trocar o adapter, o system prompt ou
+os parâmetros de geração, mexe SÓ aqui.
 
 Fluxo de um turno (responder):
   1. monta o prompt com as tools no system (apply_chat_template tools=POOL)
@@ -7,20 +17,64 @@ Fluxo de um turno (responder):
      <tool_response> e gera DE NOVO -> resposta final
   3. se nao emitir: e a resposta direta
 
-So depende de mlx_vlm + tools_reais. O chat (texto/voz) chama responder() e pronto.
+Depende de mlx_vlm, do pacote tools/ (funcoes reais) e de 5_conhecimento (RAG).
 """
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
-from mlx_vlm import generate, stream_generate
+from mlx_vlm import load, generate, stream_generate
 from mlx_vlm.prompt_utils import apply_chat_template
+from mlx_vlm.trainer.utils import apply_lora_layers
 
 RAIZ = Path(__file__).resolve().parent.parent
-POOL = json.loads((RAIZ / "2_treino" / "v6_tools" / "tools_pool.json").read_text(encoding="utf-8"))
 sys.path.insert(0, str(RAIZ / "6_assistente"))
 from tools import EXECUTORES  # pacote 6_assistente/tools/ (tools por categoria)
+sys.path.insert(0, str(RAIZ / "5_conhecimento"))
+from conhecimento import carregar_conhecimento  # base de fatos confiáveis (RAG)
+
+POOL = json.loads((RAIZ / "2_treino" / "v6_tools" / "tools_pool.json").read_text(encoding="utf-8"))
+
+# --- config do cérebro (fonte de verdade única) ---
+MODELO = "mlx-community/Qwen3.5-9B-MLX-4bit"
+# ADA_ADAPTER escolhe a versão (default ada_v10_9b, o 9B treinado na nuvem); ADA_ADAPTER=ada_v5 volta pro antigo
+ADAPTER = str(RAIZ / "1_modelo" / os.environ.get("ADA_ADAPTER", "ada_v10_9b"))
+# parametros de geracao padrao (canonico: veio do chat de texto)
+#   max_tokens solto: nunca corta o think+resposta, teto so de seguranca (anti-loop)
+#   temperature 0.5: o 9B aguenta mais solta sem virar aleatorio
+#   top_p 0.9: corta a cauda improvavel (anti-alucinacao) sem ficar decorado
+#   repetition_penalty 1.0: leve, o 9B repete bem menos que o 7B
+GEN = dict(max_tokens=4096, temperature=0.5, top_p=0.9, repetition_penalty=1.0)
+
+
+def montar_system(voz=False):
+    """Monta o system prompt da ADA. voz=True acrescenta a instrucao de fala (direto ao
+    ponto + usar ferramentas). A base de conhecimento (RAG) entra no fim, a menos que
+    ADA_BASE=off (teste do cerebro puro, sem fatos injetados)."""
+    partes = ["Usuário atual: Victor, seu criador. Seja direta e objetiva não invente informações."]
+    if voz:
+        partes.append("Você responde por voz, então vá direto ao ponto. Se o pedido pede uma "
+                       "ferramenta (hora, status, app, música...), use a ferramenta — você não "
+                       "tem relógio nem sensores próprios.")
+    if os.environ.get("ADA_BASE", "on") != "off":
+        base = carregar_conhecimento()
+        if base:
+            partes.append(base)
+    return "\n\n".join(partes)
+
+
+SYSTEM = montar_system()              # texto / web
+SYSTEM_VOZ = montar_system(voz=True)  # voz
+
+
+def carregar():
+    """Carrega o base (Qwen3.5-9B) e aplica o LoRA da ADA. Retorna (model, processor, config)."""
+    model, processor = load(MODELO, processor_config={"trust_remote_code": True})
+    config = model.config.__dict__
+    model = apply_lora_layers(model, ADAPTER)
+    return model, processor, config
 
 
 def parse_tool_calls(texto):
