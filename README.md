@@ -11,8 +11,10 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 - **Talks with a personality of her own** — dry, direct, with real opinions and taste, baked into the weights (not prompted)
 - **Acts on the Mac** — opens/closes apps, reads system status (battery/RAM/disk/Wi-Fi), controls music, volume, brightness and theme, takes screenshots, finds files, sets reminders & alarms
 - **Chains tools** — decides on her own when to use a tool, and can run several in a single turn
-- **Voice + text** — listens (Whisper), thinks, and replies out loud (voice-cloned TTS), or chat through a streaming web UI
-- **100% local & offline** — runs as a background daemon or in the terminal
+- **Persistent web chat** — streaming UI with live reasoning, tool cards, conversation history (SQLite) and markdown export
+- **100% local & offline** — chat in the browser or in the terminal
+
+> The **voice pipeline** (Whisper → 9B → voice-cloned TTS) works and lives in `_arquivado/` — on hold until it fits comfortably next to the 9B on 16 GB.
 
 ## By the numbers
 
@@ -30,17 +32,18 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 - **Training** — LoRA / QLoRA (4-bit) on a cloud GPU, then converted to MLX to run locally
 - **Inference** — MLX on Apple Silicon's unified memory; the 9B fits in 16 GB at 4-bit, fully offline
 - **Tools** — the model reasons, picks a tool, runs it, then answers — no hardcoded intent matching
+- **Evaluation** — versions are compared on a fixed 50-question benchmark: 5 objective categories scored by script against an answer key, plus blind-judged reasoning (see `6_benchmark/`)
 
 ## Repo layout
 
 | Path | What |
 |---|---|
-| `_modelo/` | the LoRA adapter (MLX format) — the "brain" |
-| `3_chat/` | terminal text chat |
-| `4_voz/` | voice pipeline (Whisper → 9B → TTS) |
-| `1_ada/conhecimento/` | grounding facts (anti-hallucination) |
-| `1_ada/` | tool runtime + resident daemon |
-| `2_interface/` | streaming web chat |
+| `1_ada/` | the core: brain runtime (`cerebro.py`), tool executors, grounding facts (RAG) |
+| `2_interface/` | the main product — web chat (`back/` FastAPI + SSE, `front/` vanilla JS) |
+| `3_chat/` | terminal chat, for debugging the brain raw |
+| `6_benchmark/` | the evaluation harness — fixed questions, scoring, comparison chart |
+| `_modelo/` | the LoRA adapter (MLX format) — the weights |
+| `_arquivado/` | the voice pipeline + resident daemon, parked |
 
 > The **personality dataset** and **training pipeline** are proprietary and **not** part of this repo — that's ADA's secret sauce.
 
@@ -50,15 +53,17 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-python 3_chat/chat_ada.py     # text chat
-python 4_voz/ada_voz.py       # voice: you talk, she talks back
+python 2_interface/back/server.py   # web chat -> http://localhost:8000
+python 3_chat/chat_ada.py           # terminal chat
 ```
 
 The current adapter (`ada_v10_9b`) is included; the **Qwen3.5-9B** base downloads automatically on first run (~5 GB at 4-bit). Set `ADA_BASE=off` to test the raw LoRA without the grounding facts.
 
+**Next up:** `v11b` — a reasoning upgrade (every training example rebuilt with a real chain of thought, plus new math / ambiguity / tool-boundary examples). Currently in blind-benchmark validation against v10.
+
 ## Stack
 
-`Qwen3.5-9B` · `MLX` · `LoRA / QLoRA` · `PEFT` · `Whisper` · `FastAPI` · Mac M4 (16 GB)
+`Qwen3.5-9B` · `MLX` · `LoRA / QLoRA` · `PEFT` · `FastAPI` · `SQLite` · Mac M4 (16 GB)
 
 ## License
 
