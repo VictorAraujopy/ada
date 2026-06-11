@@ -1,0 +1,21 @@
+[
+  {"type":"function","function":{"name":"que_horas","description":"Retorna a data e a hora atuais do sistema.","parameters":{"type":"object","properties":{},"required":[]}}},
+  {"type":"function","function":{"name":"status_mac","description":"Retorna bateria, RAM e espaco em disco do Mac.","parameters":{"type":"object","properties":{},"required":[]}}},
+  {"type":"function","function":{"name":"abrir_app","description":"Abre um aplicativo no Mac pelo nome.","parameters":{"type":"object","properties":{"nome":{"type":"string"}},"required":["nome"]}}},
+  {"type":"function","function":{"name":"buscar_arquivo","description":"Procura arquivos por nome e retorna os caminhos.","parameters":{"type":"object","properties":{"nome":{"type":"string"}},"required":["nome"]}}},
+  {"type":"function","function":{"name":"tocar_musica","description":"Toca uma musica ou artista no player.","parameters":{"type":"object","properties":{"busca":{"type":"string"}},"required":["busca"]}}},
+  {"type":"function","function":{"name":"pausar_musica","description":"Pausa a musica que esta tocando.","parameters":{"type":"object","properties":{},"required":[]}}},
+  {"type":"function","function":{"name":"proxima_musica","description":"Pula para a proxima faixa.","parameters":{"type":"object","properties":{},"required":[]}}},
+  {"type":"function","function":{"name":"ajustar_volume","description":"Ajusta o volume do sistema.","parameters":{"type":"object","properties":{"nivel":{"type":"string"}},"required":["nivel"]}}},
+  {"type":"function","function":{"name":"ajustar_brilho","description":"Ajusta o brilho da tela.","parameters":{"type":"object","properties":{"nivel":{"type":"string"}},"required":["nivel"]}}},
+  {"type":"function","function":{"name":"tirar_screenshot","description":"Captura a tela atual.","parameters":{"type":"object","properties":{},"required":[]}}},
+  {"type":"function","function":{"name":"mudar_tema","description":"Alterna o tema do sistema entre claro e escuro.","parameters":{"type":"object","properties":{"modo":{"type":"string"}},"required":["modo"]}}},
+  {"type":"function","function":{"name":"bloquear_tela","description":"Bloqueia a tela do Mac.","parameters":{"type":"object","properties":{},"required":[]}}},
+  {"type":"function","function":{"name":"criar_lembrete","description":"Cria um lembrete.","parameters":{"type":"object","properties":{"texto":{"type":"string"},"quando":{"type":"string"}},"required":["texto"]}}},
+  {"type":"function","function":{"name":"definir_alarme","description":"Define um alarme para um horario.","parameters":{"type":"object","properties":{"hora":{"type":"string"}},"required":["hora"]}}},
+  {"type":"function","function":{"name":"listar_lembretes","description":"Lista os lembretes ativos.","parameters":{"type":"object","properties":{},"required":[]}}},
+  {"type":"function","function":{"name":"fechar_app","description":"Fecha um aplicativo aberto pelo nome.","parameters":{"type":"object","properties":{"nome":{"type":"string"}},"required":["nome"]}}},
+  {"type":"function","function":{"name":"listar_apps_abertos","description":"Lista os aplicativos abertos no momento.","parameters":{"type":"object","properties":{},"required":[]}}},
+  {"type":"function","function":{"name":"verificar_wifi","description":"Verifica o estado da conexao Wi-Fi.","parameters":{"type":"object","properties":{},"required":[]}}},
+  {"type":"function","function":{"name":"esvaziar_lixeira","description":"Esvazia a lixeira do Mac.","parameters":{"type":"object","properties":{},"required":[]}}}
+]

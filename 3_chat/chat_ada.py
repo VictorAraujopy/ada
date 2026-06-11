@@ -1,7 +1,7 @@
 """
 Chat interativo com a ADA no terminal.
 
-Carrega o cérebro (Qwen3.5-9B + adapter LoRA) via 6_assistente/cerebro.py e mantém
+Carrega o cérebro (Qwen3.5-9B + adapter LoRA) via 1_ada/cerebro.py e mantém
 a conversa com histórico (multi-turn). Digite 'sair' pra encerrar.
 
 Rodar, da raiz do projeto:
@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(RAIZ / "6_assistente"))
+sys.path.insert(0, str(RAIZ / "1_ada"))
 import cerebro  # núcleo da ADA: config, system, carregar, runtime de tools
 
 SHOW_THINK = os.environ.get("ADA_SHOW_THINK", "off") == "on"  # demo: mostra o raciocinio (pro video)

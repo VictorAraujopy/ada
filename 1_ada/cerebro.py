@@ -17,7 +17,7 @@ Fluxo de um turno (responder):
      <tool_response> e gera DE NOVO -> resposta final
   3. se nao emitir: e a resposta direta
 
-Depende de mlx_vlm, do pacote tools/ (funcoes reais) e de 5_conhecimento (RAG).
+Depende de mlx_vlm, do pacote tools/ (funcoes reais) e de 1_ada/conhecimento (RAG).
 """
 import json
 import os
@@ -30,18 +30,18 @@ from mlx_vlm.prompt_utils import apply_chat_template
 from mlx_vlm.trainer.utils import apply_lora_layers
 
 RAIZ = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(RAIZ / "6_assistente"))
-from tools import EXECUTORES  # pacote 6_assistente/tools/ (tools por categoria)
-sys.path.insert(0, str(RAIZ / "5_conhecimento"))
+sys.path.insert(0, str(RAIZ / "1_ada"))
+from tools import EXECUTORES  # pacote 1_ada/tools/ (tools por categoria)
+sys.path.insert(0, str(RAIZ / "1_ada" / "conhecimento"))
 from conhecimento import carregar_conhecimento  # base de fatos confiáveis (RAG)
 
-POOL = json.loads((RAIZ / "2_treino" / "v6_tools" / "tools_pool.json").read_text(encoding="utf-8"))
+POOL = json.loads((Path(__file__).resolve().parent / "tools_pool.json").read_text(encoding="utf-8"))
 
 # --- config do cérebro (fonte de verdade única) ---
 MODELO = "mlx-community/Qwen3.5-9B-MLX-4bit"
 # ADA_ADAPTER escolhe a versão (default ada_v10_9b, o 9B treinado na nuvem); ADA_ADAPTER=ada_v5 volta pro antigo
-ADAPTER = str(RAIZ / "1_modelo" / os.environ.get("ADA_ADAPTER", "ada_v10_9b"))
-# parametros de geracao padrao (canonico: veio do chat de texto)
+ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11_a16_9b"))
+# parametros de geracao padrao (canonico: veio do chat 1
 #   max_tokens solto: nunca corta o think+resposta, teto so de seguranca (anti-loop)
 #   temperature 0.5: o 9B aguenta mais solta sem virar aleatorio
 #   top_p 0.9: corta a cauda improvavel (anti-alucinacao) sem ficar decorado
@@ -110,6 +110,16 @@ def _limpa(texto):
     return texto.strip()
 
 
+def _visivel(buf):
+    """Quanto do buffer pode ir pra tela como raciocinio, e se ele ja fechou.
+    Corta na PRIMEIRA sentinela: </think> (fim normal) ou <tool_call> (o modelo
+    pulou direto pra tool sem fechar o think — tool_call nunca e pra tela)."""
+    cortes = [buf.find(s) for s in ("</think>", "<tool_call>") if s in buf]
+    if not cortes:
+        return buf, False
+    return buf[:min(cortes)], True
+
+
 def responder(model, processor, config, historico, **gen_kw):
     """Gera a resposta; se a ADA chamar uma tool, executa e gera a final.
     Retorna (resposta, passo_tool) — passo_tool = (nome, args, resultado) ou None."""
@@ -164,12 +174,12 @@ def responder_stream(model, processor, config, historico, **gen_kw):
             buf += _token(chunk)
             if impresso is None:
                 continue                              # think ja fechou; so acumula (pro tool_call)
-            visivel = buf.split("</think>", 1)[0]     # so o raciocinio, SEM a tag
+            visivel, fechou = _visivel(buf)           # so o raciocinio, SEM tag nem tool_call
             if len(visivel) > impresso:
                 # mostra o pedaco novo — inclui a ULTIMA palavra mesmo grudada no </think>
                 print(visivel[impresso:], end="", flush=True)
                 impresso = len(visivel)
-            if "</think>" in buf:
+            if fechou:
                 print("\033[0m", flush=True)          # fecha o cinza e para de mostrar
                 impresso = None
         if impresso is not None:
@@ -223,11 +233,11 @@ def responder_eventos(model, processor, config, historico, **gen_kw):
         buf += tok
         if impresso is None:
             continue
-        visivel = buf.split("</think>", 1)[0]
+        visivel, fechou = _visivel(buf)
         if len(visivel) > impresso:
             yield {"t": "think", "d": visivel[impresso:]}
             impresso = len(visivel)
-        if "</think>" in buf:
+        if fechou:
             impresso = None
     saida = buf
 

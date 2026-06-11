@@ -9,21 +9,24 @@ __pycache__/
 # === Pesos dos adapters ===
 # Só o adapter ATUAL (v10, ~83M) entra — é o que faz a ADA funcionar.
 *.safetensors
-!1_modelo/ada_v10_9b/adapters.safetensors
-# Versões antigas fora (v5 tem 165M e nem caberia no GitHub; v6/v7/v9 são histórico).
-1_modelo/ada_v5/
-1_modelo/ada_v6_9b/
-1_modelo/ada_v7_9b/
-1_modelo/ada_v9_9b/
+!_modelo/ada_v10_9b/adapters.safetensors
+# Versões antigas fora do GitHub
+_modelo/ada_v9_9b/
+_modelo/ada_v11_a16_9b/
+_modelo/ada_v11b_a16_9b/
 
 # Voz pessoal (referência de clonagem) e áudios temporários
-4_voz/voz_ada.wav
-4_voz/_fala_*.wav
+_arquivado/4_voz/voz_ada.wav
+_arquivado/4_voz/_fala_*.wav
 
 # Runtime / temporários
 *.log
 **/screenshot_*.png
-7_interface/conversas.db*
+2_interface/back/conversas.db*
+
+# Manual de operação pessoal (comandos, custos, pipeline de treino) + mapa
+/COMANDOS.md
+/MAPA.md
 
 # Material didático/pessoal do Victor (não sobe — é pra estudo dele, não pro mundo)
 # docs/ = os DOCX + geradores; README.md por pasta = guias internos.
@@ -31,9 +34,13 @@ __pycache__/
 docs/
 **/README.md
 !/README.md
-# Arquivos de estudo que o Claude criou pra ensinar (didáticos, não produto)
-7_interface/exemplo_fila.py
-7_interface/server_EXPLICADO.py
 
-# Treino + dataset = proprietários (o "molho" da ADA — não entra na vitrine)
-2_treino/
+# Voz/daemon descontinuados (codigo arquivado fica no repo; pesados pro Mac atual)
+
+
+# Treino + laboratório = proprietários (o "molho" da ADA — não entra na vitrine)
+4_treino/
+5_lab/
+
+# Benchmark: o harness (scripts + perguntas) é público; os RESULTADOS são pessoais
+6_benchmark/resultados/

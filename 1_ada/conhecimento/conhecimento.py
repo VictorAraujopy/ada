@@ -1,7 +1,7 @@
 """
 Base de conhecimento da ADA (RAG).
 
-Lê as fichas .md de 5_conhecimento/base/ e monta o bloco de contexto que entra no
+Lê as fichas .md de 1_ada/conhecimento/base/ e monta o bloco de contexto que entra no
 system prompt do chat. Assim a ADA responde fato com base na FICHA, não na memória
 dos pesos (onde ela alucina).
 

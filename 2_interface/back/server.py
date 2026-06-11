@@ -8,13 +8,13 @@ o endpoint streama os eventos dela via SSE, e conversas não se misturam.
 As conversas vivem no SQLite (armazem.py): sobrevivem a F5 e a reinício do
 servidor. O histórico que vai pro modelo é remontado do banco a cada turno.
 
-O cérebro é caixa-preta aqui: tudo passa por cerebro_tools.responder_eventos().
+O cérebro é caixa-preta aqui: tudo passa por cerebro.responder_eventos().
 
 Rodar:
-    .venv/bin/python 7_interface/server.py        # abre http://localhost:8000
-Trocar de versão:   ADA_ADAPTER=ada_v9_9b .venv/bin/python 7_interface/server.py
+    .venv/bin/python 2_interface/back/server.py        # abre http://localhost:8000
+Trocar de versão:   ADA_ADAPTER=ada_v9_9b .venv/bin/python 2_interface/back/server.py
 Testar a interface SEM carregar o 9B (eventos de mentira, resposta na hora):
-    ADA_FAKE=1 .venv/bin/python 7_interface/server.py
+    ADA_FAKE=1 .venv/bin/python 2_interface/back/server.py
 """
 import json
 import os
@@ -32,16 +32,17 @@ from fastapi.staticfiles import StaticFiles
 
 import armazem
 
-RAIZ = Path(__file__).resolve().parent.parent
+RAIZ = Path(__file__).resolve().parent.parent.parent
 AQUI = Path(__file__).resolve().parent
-sys.path.insert(0, str(RAIZ / "6_assistente"))
+FRONT = AQUI.parent / "front"
+sys.path.insert(0, str(RAIZ / "1_ada"))
 
 FAKE = os.environ.get("ADA_FAKE") == "1"
 
-# Config, system prompt e params de geração vivem TODOS no núcleo (6_assistente/cerebro.py).
+# Config, system prompt e params de geração vivem TODOS no núcleo (1_ada/cerebro.py).
 # Aqui o backend só importa e repassa. No modo FAKE o núcleo nem é carregado (sem MLX), então
 # o SYSTEM fica vazio (os eventos de mentira ignoram); o worker o preenche ao carregar de verdade.
-ADAPTER = str(RAIZ / "1_modelo" / os.environ.get("ADA_ADAPTER", "ada_v10_9b"))  # só pro /info
+ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11_a16_9b"))  # só pro /info
 SYSTEM = ""  # preenchido pelo worker com cerebro.SYSTEM quando o modelo carrega
 
 
@@ -103,13 +104,13 @@ def worker():
 
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory=AQUI / "static"), name="static")
+app.mount("/static", StaticFiles(directory=FRONT), name="static")
 threading.Thread(target=worker, daemon=True).start()
 
 
 @app.get("/")
 def index():
-    return FileResponse(AQUI / "index.html")
+    return FileResponse(FRONT / "index.html")
 
 
 @app.get("/info")

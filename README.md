@@ -35,12 +35,12 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 
 | Path | What |
 |---|---|
-| `1_modelo/` | the LoRA adapter (MLX format) — the "brain" |
+| `_modelo/` | the LoRA adapter (MLX format) — the "brain" |
 | `3_chat/` | terminal text chat |
 | `4_voz/` | voice pipeline (Whisper → 9B → TTS) |
-| `5_conhecimento/` | grounding facts (anti-hallucination) |
-| `6_assistente/` | tool runtime + resident daemon |
-| `7_interface/` | streaming web chat |
+| `1_ada/conhecimento/` | grounding facts (anti-hallucination) |
+| `1_ada/` | tool runtime + resident daemon |
+| `2_interface/` | streaming web chat |
 
 > The **personality dataset** and **training pipeline** are proprietary and **not** part of this repo — that's ADA's secret sauce.
 

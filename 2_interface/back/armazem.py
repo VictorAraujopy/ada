@@ -1,5 +1,5 @@
 """
-Armazenamento das conversas da interface — SQLite local (7_interface/conversas.db).
+Armazenamento das conversas da interface — SQLite local (2_interface/conversas.db).
 
 Duas tabelas:
   conversas — id, título (1ª mensagem encurtada), criada/atualizada

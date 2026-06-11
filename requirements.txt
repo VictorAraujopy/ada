@@ -3,15 +3,16 @@
 #   pip install -r requirements.txt
 
 # --- Cérebro + runtime (rodar a ADA no Mac) ---
+# (deps de VOZ comentadas — pipeline arquivado em _arquivado/; descomenta se voltar)
 mlx-vlm==0.5.0          # carrega o Qwen3.5-9B em MLX + aplica o adapter LoRA
-mlx-whisper==0.4.3      # transcrição de voz (o "ouvido")
-mlx-audio==0.4.3        # síntese de voz / TTS (a "boca")
+# mlx-whisper==0.4.3      # transcrição de voz (o "ouvido")
+# mlx-audio==0.4.3        # síntese de voz / TTS (a "boca")
 transformers==5.9.0     # tokenizer e chat template do Qwen
-argostranslate==1.11.0  # tradução PT->EN offline (pra voz sair sem sotaque)
-sounddevice==0.5.5      # captura do microfone
+# argostranslate==1.11.0  # tradução PT->EN offline (pra voz sair sem sotaque)
+# sounddevice==0.5.5      # captura do microfone
 scipy==1.17.1           # escrita dos WAVs
 numpy==2.4.6
 
-# --- Interface web (7_interface — só pra demo) ---
+# --- Interface web (2_interface — só pra demo) ---
 fastapi==0.136.3
 uvicorn==0.48.0
