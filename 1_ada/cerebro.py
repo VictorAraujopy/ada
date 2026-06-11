@@ -39,8 +39,8 @@ POOL = json.loads((Path(__file__).resolve().parent / "tools_pool.json").read_tex
 
 # --- config do cérebro (fonte de verdade única) ---
 MODELO = "mlx-community/Qwen3.5-9B-MLX-4bit"
-# ADA_ADAPTER escolhe a versão (default ada_v10_9b, o 9B treinado na nuvem); ADA_ADAPTER=ada_v5 volta pro antigo
-ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11_a16_9b"))
+# ADA_ADAPTER escolhe a versão (default ada_v11b_a16_9b, o 9B treinado na nuvem); ADA_ADAPTER=ada_v5 volta pro antigo
+ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11b_a16_9b"))
 # parametros de geracao padrao (canonico: veio do chat 1
 #   max_tokens solto: nunca corta o think+resposta, teto so de seguranca (anti-loop)
 #   temperature 0.5: o 9B aguenta mais solta sem virar aleatorio

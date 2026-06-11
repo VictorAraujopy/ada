@@ -57,9 +57,9 @@ python 2_interface/back/server.py   # web chat -> http://localhost:8000
 python 3_chat/chat_ada.py           # terminal chat
 ```
 
-The current adapter (`ada_v10_9b`) is included; the **Qwen3.5-9B** base downloads automatically on first run (~5 GB at 4-bit). Set `ADA_BASE=off` to test the raw LoRA without the grounding facts.
+The current adapter (`ada_v11b_a16_9b`) is included (with `ada_v10_9b` as the previous version); the **Qwen3.5-9B** base downloads automatically on first run (~5 GB at 4-bit). Set `ADA_BASE=off` to test the raw LoRA without the grounding facts.
 
-**Next up:** `v11b` — a reasoning upgrade (every training example rebuilt with a real chain of thought, plus new math / ambiguity / tool-boundary examples). Currently in blind-benchmark validation against v10.
+**Latest:** `v11b` — a reasoning upgrade: every training example rebuilt with a real chain of thought, plus new math / ambiguity / tool-boundary examples. Validated against v10 on a fixed 100-question internal eval (objective answer keys + blind-judged reasoning: 36 of 44 votes) — see `6_benchmark/`.
 
 ## Stack
 

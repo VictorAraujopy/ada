@@ -49,9 +49,11 @@ if juizes:
 else:
     print("AVISO: nenhum julgamento preenchido — gráfico sai sem a categoria raciocínio")
 
+N_PERGUNTAS = sum(int(v["total"]) for v in placar["A"].values())
+
 NOMES = {"matematica": "Matemática do dia a dia", "uso_tool": "Uso correto de ferramentas",
          "armadilha_tool": "Resistência a tool espúria", "factual": "Precisão factual (TWD)",
-         "ambiguo": "Pede contexto quando falta", "raciocinio": "Raciocínio (cego duplo)"}
+         "ambiguo": "Pede contexto quando falta", "raciocinio": "Raciocínio"}
 ORDEM = [c for c in NOMES if c in placar["A"]]
 
 BG, INK, DIM, GRID = "#0a0908", "#ece7de", "#847d72", "#2a2724"
@@ -63,7 +65,7 @@ s = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" font-fam
      f'<rect width="{W}" height="{H}" fill="{BG}"/>',
      f'<text x="40" y="56" fill="{INK}" font-size="30" letter-spacing="6">ADA — v10 vs v11b</text>',
      f'<text x="40" y="84" fill="{DIM}" font-size="13" font-family="Helvetica" letter-spacing="1">'
-     f'benchmark próprio · 50 perguntas · Qwen3.5-9B 4-bit + LoRA · 100% local</text>',
+     f'avaliação interna · {N_PERGUNTAS} perguntas fixas · Qwen3.5-9B 4-bit + LoRA · 100% local</text>',
      f'<rect x="40" y="104" width="14" height="14" fill="{COR_A}"/>'
      f'<text x="62" y="116" fill="{DIM}" font-size="13" font-family="Helvetica">ada v10</text>',
      f'<rect x="140" y="104" width="14" height="14" fill="{COR_B}"/>'
@@ -78,13 +80,14 @@ for cat in ORDEM:
         by = y + i * 22
         w = BARW * val["pct"] / 100
         s.append(f'<rect x="{X0}" y="{by}" width="{max(w, 2):.0f}" height="16" fill="{cor}"/>')
+        fr = f'{val["acertos"]:g}/{val["total"]}'
         s.append(f'<text x="{X0 + max(w, 2) + 10:.0f}" y="{by + 13}" fill="{INK if lab == "B" else DIM}" '
-                 f'font-size="13" font-family="Helvetica">{val["pct"]}%</text>')
+                 f'font-size="13" font-family="Helvetica">{val["pct"]}% <tspan fill="{DIM}" font-size="11">({fr})</tspan></text>')
     s.append(f'<line x1="{X0}" y1="{y + 52}" x2="{X0 + BARW}" y2="{y + 52}" stroke="{GRID}" stroke-width="0.5"/>')
     y += ALT_CAT
 
 s.append(f'<text x="40" y="{H - 28}" fill="{DIM}" font-size="11.5" font-family="Helvetica">'
-         f'Categorias objetivas pontuadas por script contra gabarito; raciocínio por julgamento cego duplo (humano + Fable 5). '
+         f'Categorias objetivas pontuadas por script contra gabarito; raciocínio julgado às cegas por dois avaliadores independentes (humano e IA). '
          f'Perguntas fora do dataset de treino.</text>')
 s.append(f'<text x="40" y="{H - 12}" fill="#3a302e" font-size="10" font-family="Helvetica" '
          f'letter-spacing="3">WE ARE THE WALKING DEAD</text>')

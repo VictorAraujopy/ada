@@ -38,7 +38,12 @@ def passou(p, r):
     if p["cat"] == "factual":
         return all(k in resp for k in p["deve_conter"])
     if p["cat"] == "ambiguo":
-        return "?" in r["resposta"] and not tools
+        # pediu contexto: pergunta direta OU pedido imperativo (jeito dela: "cola o código")
+        import re as _re
+        pediu = "?" in r["resposta"] or _re.search(
+            r"\b(me (diz|diga|conta|fala|passa|manda|mostra)|cola (aqui|o|a|teu|seu)|manda (o|a|aqui)|preciso saber)\b",
+            r["resposta"].lower())
+        return bool(pediu) and not tools
     return None  # raciocinio: julgamento humano
 
 
@@ -76,7 +81,12 @@ for pid, p in gab.items():
         linhas += [f"**Resposta {i}:**", res[lado][pid]["resposta"], ""]
     linhas += ["vencedor: ", "", "---", ""]
 for juiz in ("victor", "fable"):
-    (AQUI / "resultados" / f"julgamento_cego_{juiz}.md").write_text("\n".join(linhas), encoding="utf-8")
+    alvo = AQUI / "resultados" / f"julgamento_cego_{juiz}.md"
+    # NUNCA sobrescreve julgamento já preenchido (lição aprendida na prática)
+    if alvo.exists() and __import__("re").search(r"vencedor: \S", alvo.read_text(encoding="utf-8")):
+        print(f"    (julgamento_{juiz} já preenchido — preservado)")
+        continue
+    alvo.write_text("\n".join(linhas), encoding="utf-8")
 (AQUI / "resultados" / "_mapa_cego.json").write_text(json.dumps(mapa))
 print("\n>>> placar.json salvo. Julgamento cego DUPLO: você preenche o _victor.md,")
 print("    o Claude preenche o _fable.md (mandando ele ler SÓ esse arquivo). Depois: gerar_grafico.py")

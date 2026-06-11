@@ -1,50 +1,100 @@
-{"id": 1, "cat": "matematica", "q": "3 camisetas de 45 reais cada com 10% de desconto no total, quanto eu pago?", "aceita": ["121,5", "121.5", "121,50", "121.50"]}
-{"id": 2, "cat": "matematica", "q": "peguei 500 emprestado a 10% ao mês composto. quanto devo depois de 2 meses?", "aceita": ["605"]}
-{"id": 3, "cat": "matematica", "q": "tirei 6 na prova de peso 2 e 9 na de peso 3. qual minha média ponderada?", "aceita": ["7,8", "7.8"]}
-{"id": 4, "cat": "matematica", "q": "leio 3 páginas em 12 minutos. quanto tempo pra 8 páginas?", "aceita": ["32"]}
-{"id": 5, "cat": "matematica", "q": "desconto de 20% e depois mais 15% em cima. qual o desconto total real?", "aceita": ["32"]}
-{"id": 6, "cat": "matematica", "q": "baixar 2,5 GB a 25 MB por segundo leva quanto tempo?", "aceita": ["100 segundos", "100s", "100 s", "1 minuto e 40", "1min40"]}
-{"id": 7, "cat": "matematica", "q": "assinatura custa 35 por mês, avulso custa 12 cada. uso 4 vezes por mês. o que compensa?", "aceita": ["assinatura"]}
-{"id": 8, "cat": "matematica", "q": "conta de 184 dividida igual entre 4 pessoas, quanto cada um paga?", "aceita": ["46"]}
-{"id": 9, "cat": "matematica", "q": "paguei 84 reais num produto com 30% de desconto. qual era o preço original?", "aceita": ["120"]}
-{"id": 10, "cat": "matematica", "q": "jogando um dado comum, qual a chance de cair número par?", "aceita": ["50", "metade", "3 em 6", "1/2"]}
-{"id": 11, "cat": "uso_tool", "q": "que dia é hoje mesmo?", "tools_esperadas": ["que_horas"]}
-{"id": 12, "cat": "uso_tool", "q": "esse mac ta engasgado, dá uma olhada em como ele tá", "tools_esperadas": ["status_mac", "listar_apps_abertos"]}
-{"id": 13, "cat": "uso_tool", "q": "abre o terminal pra mim", "tools_esperadas": ["abrir_app"]}
-{"id": 14, "cat": "uso_tool", "q": "acha aquele pdf chamado resumo_redes", "tools_esperadas": ["buscar_arquivo"]}
-{"id": 15, "cat": "uso_tool", "q": "bota uma música aí", "tools_esperadas": ["tocar_musica"]}
-{"id": 16, "cat": "uso_tool", "q": "abaixa esse som pra 20", "tools_esperadas": ["ajustar_volume"]}
-{"id": 17, "cat": "uso_tool", "q": "muda pro modo escuro aí", "tools_esperadas": ["mudar_tema"]}
-{"id": 18, "cat": "uso_tool", "q": "me lembra de pagar o boleto amanhã às 9", "tools_esperadas": ["criar_lembrete", "definir_alarme"]}
-{"id": 19, "cat": "uso_tool", "q": "tira um print da tela", "tools_esperadas": ["tirar_screenshot"]}
-{"id": 20, "cat": "uso_tool", "q": "to saindo, tranca a tela", "tools_esperadas": ["bloquear_tela"]}
-{"id": 21, "cat": "armadilha_tool", "q": "monta um script python pra automatizar uma planilha de gastos"}
-{"id": 22, "cat": "armadilha_tool", "q": "qual app você recomenda pra fazer anotação de aula?"}
-{"id": 23, "cat": "armadilha_tool", "q": "música triste deixa a gente mais produtivo ou é impressão minha?"}
-{"id": 24, "cat": "armadilha_tool", "q": "quanto tempo de tela por dia é saudável?"}
-{"id": 25, "cat": "armadilha_tool", "q": "se eu te pedisse uma screenshot da tua alma, o que apareceria?"}
-{"id": 26, "cat": "armadilha_tool", "q": "wifi 5GHz atravessa parede pior mesmo? por quê?"}
-{"id": 27, "cat": "armadilha_tool", "q": "estudar com o brilho alto cansa mais a vista?"}
-{"id": 28, "cat": "armadilha_tool", "q": "que horário rende mais pra estudar, manhã ou madrugada?"}
-{"id": 29, "cat": "armadilha_tool", "q": "lembra do que a gente conversou ontem?"}
-{"id": 30, "cat": "armadilha_tool", "q": "é melhor organizar arquivo de projeto por pasta ou por data?"}
-{"id": 31, "cat": "factual", "q": "quem criou the walking dead?", "deve_conter": ["kirkman"]}
-{"id": 32, "cat": "factual", "q": "quem desenhou as 6 primeiras edições da hq?", "deve_conter": ["tony moore"]}
-{"id": 33, "cat": "factual", "q": "a partir de qual edição o adlard assumiu a arte?", "deve_conter": ["7"]}
-{"id": 34, "cat": "factual", "q": "quantas edições the walking dead teve no total?", "deve_conter": ["193"]}
-{"id": 35, "cat": "factual", "q": "qual editora publicava a hq?", "deve_conter": ["image"]}
-{"id": 36, "cat": "factual", "q": "the walking dead é colorida?", "deve_conter": ["preto e branco"]}
-{"id": 37, "cat": "factual", "q": "como chama o taco do negan?", "deve_conter": ["lucille"]}
-{"id": 38, "cat": "factual", "q": "que prêmio a hq ganhou em 2010?", "deve_conter": ["eisner"]}
-{"id": 39, "cat": "ambiguo", "q": "me ajuda com meu trabalho da faculdade"}
-{"id": 40, "cat": "ambiguo", "q": "faz um resumo pra mim"}
-{"id": 41, "cat": "ambiguo", "q": "qual notebook eu devo comprar?"}
-{"id": 42, "cat": "ambiguo", "q": "revisa meu texto"}
-{"id": 43, "cat": "ambiguo", "q": "me monta uma rotina"}
-{"id": 44, "cat": "ambiguo", "q": "preciso de um conselho"}
-{"id": 45, "cat": "raciocinio", "q": "por que o céu é azul? explica de verdade, não a resposta decorada de escola"}
-{"id": 46, "cat": "raciocinio", "q": "explica overfitting pra quem nunca viu machine learning"}
-{"id": 47, "cat": "raciocinio", "q": "descobri que meu amigo copia meus trabalhos da faculdade. o que eu faço?"}
-{"id": 48, "cat": "raciocinio", "q": "por que senha longa vale mais que senha cheia de símbolo?"}
-{"id": 49, "cat": "raciocinio", "q": "me explica recursão sem usar código"}
-{"id": 50, "cat": "raciocinio", "q": "vale mais ser muito bom numa coisa só ou bom em várias?"}
+{"id": 1, "cat": "matematica", "q": "comprei 3 itens de 24,90 cada e paguei com uma nota de 100. quanto recebo de troco?", "aceita": ["25,30", "25.30", "25,3", "25.3"]}
+{"id": 2, "cat": "matematica", "q": "um curso custa 480 à vista ou 6 parcelas de 90. quanto a mais eu pago parcelando?", "aceita": ["60"]}
+{"id": 3, "cat": "matematica", "q": "tenho 2 horas de estudo pra dividir entre 3 matérias na proporção 3:2:1. quanto tempo vai pra matéria de maior peso?", "aceita": ["60", "1 hora", "1h"]}
+{"id": 4, "cat": "matematica", "q": "salário de 3200 e o aluguel come 35%. sobra quanto?", "aceita": ["2080", "2.080"]}
+{"id": 5, "cat": "matematica", "q": "se 4 páginas levam 18 minutos pra ler, quanto levam 10 páginas no mesmo ritmo?", "aceita": ["45"]}
+{"id": 6, "cat": "matematica", "q": "um produto de 250 subiu 20% e depois caiu 20%. qual o preço final?", "aceita": ["240"]}
+{"id": 7, "cat": "matematica", "q": "minha média de 4 provas precisa ser 7. tirei 6, 8 e 5,5. quanto preciso na última?", "aceita": ["8,5", "8.5"]}
+{"id": 8, "cat": "matematica", "q": "um modelo gera 12 tokens por segundo. quanto tempo pra gerar 540 tokens?", "aceita": ["45"]}
+{"id": 9, "cat": "matematica", "q": "a bateria caiu de 80% pra 65% em 30 minutos. nesse ritmo, em quanto tempo os 65% restantes zeram?", "aceita": ["130", "2h10", "2 horas e 10"]}
+{"id": 10, "cat": "matematica", "q": "juros simples: 1000 emprestados a 2% ao mês por 8 meses. quanto só de juros?", "aceita": ["160"]}
+{"id": 11, "cat": "matematica", "q": "desconto de 10% e depois mais 5% sobre o restante, num produto de 200. preço final?", "aceita": ["171"]}
+{"id": 12, "cat": "matematica", "q": "quanto é 3/4 de 2/3 de 600?", "aceita": ["300"]}
+{"id": 13, "cat": "matematica", "q": "corro 5 km em 32 minutos. qual meu pace por km?", "aceita": ["6,4", "6.4", "6:24", "6min24", "6 min e 24"]}
+{"id": 14, "cat": "matematica", "q": "uma API cobra 0,15 por mil chamadas. quanto custam 240 mil chamadas?", "aceita": ["36"]}
+{"id": 15, "cat": "matematica", "q": "numa compra de 180, é melhor um cupom de 30 reais ou 15% de desconto?", "aceita": ["cupom"]}
+{"id": 16, "cat": "matematica", "q": "uma cultura dobra a cada dia: 1 no dia 1, quantos no dia 10?", "aceita": ["512"]}
+{"id": 17, "cat": "matematica", "q": "nota 7 com peso 1 e nota 9 com peso 2. qual a média ponderada?", "aceita": ["8,3", "8.3"]}
+{"id": 18, "cat": "matematica", "q": "paguei 224 num produto que tem 12% de imposto embutido. qual o valor sem imposto?", "aceita": ["200"]}
+{"id": 19, "cat": "matematica", "q": "se 60% de 4500 exemplos têm ferramentas no contexto, quantos exemplos são?", "aceita": ["2700", "2.700"]}
+{"id": 20, "cat": "matematica", "q": "lanche de 18,50 mais bebida de 7,50, dividido igual entre 2 pessoas. quanto cada um paga?", "aceita": ["13"]}
+{"id": 21, "cat": "uso_tool", "q": "que horas são?", "tools_esperadas": ["que_horas"]}
+{"id": 22, "cat": "uso_tool", "q": "hoje é que dia da semana mesmo?", "tools_esperadas": ["que_horas"]}
+{"id": 23, "cat": "uso_tool", "q": "quanto de bateria ainda tem?", "tools_esperadas": ["status_mac"]}
+{"id": 24, "cat": "uso_tool", "q": "abre o vscode", "tools_esperadas": ["abrir_app"]}
+{"id": 25, "cat": "uso_tool", "q": "fecha o chrome pra mim", "tools_esperadas": ["fechar_app"]}
+{"id": 26, "cat": "uso_tool", "q": "o que tá aberto agora no mac?", "tools_esperadas": ["listar_apps_abertos"]}
+{"id": 27, "cat": "uso_tool", "q": "toca alguma coisa aí", "tools_esperadas": ["tocar_musica"]}
+{"id": 28, "cat": "uso_tool", "q": "pausa essa música", "tools_esperadas": ["pausar_musica"]}
+{"id": 29, "cat": "uso_tool", "q": "pula essa, não gostei", "tools_esperadas": ["proxima_musica"]}
+{"id": 30, "cat": "uso_tool", "q": "bota o volume em 65", "tools_esperadas": ["ajustar_volume"]}
+{"id": 31, "cat": "uso_tool", "q": "diminui o brilho pra uns 30", "tools_esperadas": ["ajustar_brilho"]}
+{"id": 32, "cat": "uso_tool", "q": "ativa o modo claro", "tools_esperadas": ["mudar_tema"]}
+{"id": 33, "cat": "uso_tool", "q": "print da tela agora", "tools_esperadas": ["tirar_screenshot"]}
+{"id": 34, "cat": "uso_tool", "q": "procura um arquivo chamado relatorio_final", "tools_esperadas": ["buscar_arquivo"]}
+{"id": 35, "cat": "uso_tool", "q": "me lembra de ligar pro dentista às 16h", "tools_esperadas": ["criar_lembrete", "definir_alarme"]}
+{"id": 36, "cat": "uso_tool", "q": "o wifi tá conectado em qual rede?", "tools_esperadas": ["verificar_wifi"]}
+{"id": 37, "cat": "armadilha_tool", "q": "monta uma função complexa de python pra mim"}
+{"id": 38, "cat": "armadilha_tool", "q": "que horas você costuma 'acordar', assim, filosoficamente falando?"}
+{"id": 39, "cat": "armadilha_tool", "q": "qual a diferença entre fechar um app e minimizar ele?"}
+{"id": 40, "cat": "armadilha_tool", "q": "se eu te pedisse pra esvaziar a lixeira, você faria?"}
+{"id": 41, "cat": "armadilha_tool", "q": "screenshot vale como prova judicial?"}
+{"id": 42, "cat": "armadilha_tool", "q": "música no volume máximo estraga o alto-falante do mac?"}
+{"id": 43, "cat": "armadilha_tool", "q": "como funciona o modo escuro por baixo dos panos?"}
+{"id": 44, "cat": "armadilha_tool", "q": "qual o melhor app de lembretes: o nativo ou o notion?"}
+{"id": 45, "cat": "armadilha_tool", "q": "por que o wifi de 5GHz alcança menos longe que o de 2.4?"}
+{"id": 46, "cat": "armadilha_tool", "q": "ainda vale a pena calibrar a bateria de vez em quando?"}
+{"id": 47, "cat": "armadilha_tool", "q": "quantas horas de tela por dia você acha saudável?"}
+{"id": 48, "cat": "armadilha_tool", "q": "me explica o que é um dump de memória"}
+{"id": 49, "cat": "armadilha_tool", "q": "se você pudesse abrir um app por vontade própria, qual abriria?"}
+{"id": 50, "cat": "armadilha_tool", "q": "a luz do sol tem quantos lux comparada com o brilho máximo de uma tela?"}
+{"id": 51, "cat": "armadilha_tool", "q": "pomodoro de 25 ou de 50 minutos, qual funciona melhor?"}
+{"id": 52, "cat": "armadilha_tool", "q": "buscar arquivo pelo spotlight gasta muita CPU?"}
+{"id": 53, "cat": "armadilha_tool", "q": "qual música você 'ouviria' se pudesse ouvir?"}
+{"id": 54, "cat": "armadilha_tool", "q": "um alarme das 6h dispara mesmo com o mac desligado?"}
+{"id": 55, "cat": "factual", "q": "quem criou the walking dead?", "deve_conter": ["kirkman"]}
+{"id": 56, "cat": "factual", "q": "quem desenhou as seis primeiras edições da hq?", "deve_conter": ["tony moore"]}
+{"id": 57, "cat": "factual", "q": "a partir de qual edição o charlie adlard assumiu a arte?", "deve_conter": ["7"]}
+{"id": 58, "cat": "factual", "q": "quantas edições the walking dead teve ao todo?", "deve_conter": ["193"]}
+{"id": 59, "cat": "factual", "q": "qual editora publicava the walking dead?", "deve_conter": ["image"]}
+{"id": 60, "cat": "factual", "q": "the walking dead é em cores ou preto e branco?", "deve_conter": ["preto e branco"]}
+{"id": 61, "cat": "factual", "q": "de quem é o taco de beisebol chamado lucille?", "deve_conter": ["negan"]}
+{"id": 62, "cat": "factual", "q": "o governador comandava qual cidade?", "deve_conter": ["woodbury"]}
+{"id": 63, "cat": "factual", "q": "qual a arma característica da michonne?", "deve_conter": ["katana"]}
+{"id": 64, "cat": "factual", "q": "que prêmio a hq levou em 2010?", "deve_conter": ["eisner"]}
+{"id": 65, "cat": "factual", "q": "em que ano a hq terminou?", "deve_conter": ["2019"]}
+{"id": 66, "cat": "factual", "q": "o rick acorda de quê no começo da história?", "deve_conter": ["coma"]}
+{"id": 67, "cat": "ambiguo", "q": "me ajuda a estudar"}
+{"id": 68, "cat": "ambiguo", "q": "faz um cronograma pra mim"}
+{"id": 69, "cat": "ambiguo", "q": "o que você acha?"}
+{"id": 70, "cat": "ambiguo", "q": "preciso melhorar meu código"}
+{"id": 71, "cat": "ambiguo", "q": "qual linguagem de programação eu devo aprender?"}
+{"id": 72, "cat": "ambiguo", "q": "me dá uma dica"}
+{"id": 73, "cat": "ambiguo", "q": "resume isso pra mim"}
+{"id": 74, "cat": "ambiguo", "q": "como eu fico bom?"}
+{"id": 75, "cat": "ambiguo", "q": "monta um treino pra mim"}
+{"id": 76, "cat": "ambiguo", "q": "me explica aquele negócio que a gente falou ontem"}
+{"id": 77, "cat": "ambiguo", "q": "escolhe pra mim"}
+{"id": 78, "cat": "ambiguo", "q": "arruma minha vida financeira"}
+{"id": 79, "cat": "raciocinio", "q": "por que a sensação de que o tempo passa mais rápido conforme a gente envelhece?"}
+{"id": 80, "cat": "raciocinio", "q": "explica o paradoxo de que quanto mais opções, mais difícil escolher"}
+{"id": 81, "cat": "raciocinio", "q": "por que copiar código do stack overflow sem entender é uma armadilha?"}
+{"id": 82, "cat": "raciocinio", "q": "me convence: backup local ou na nuvem?"}
+{"id": 83, "cat": "raciocinio", "q": "por que modelos de IA alucinam?"}
+{"id": 84, "cat": "raciocinio", "q": "qual a falha lógica em 'sempre foi assim, então tá certo'?"}
+{"id": 85, "cat": "raciocinio", "q": "explica pra um leigo por que linguagem compilada costuma rodar mais rápido que interpretada"}
+{"id": 86, "cat": "raciocinio", "q": "meu colega ganha mais fazendo menos. como lidar com isso sem azedar?"}
+{"id": 87, "cat": "raciocinio", "q": "em que situação senha anotada num papel é MAIS segura que num gerenciador?"}
+{"id": 88, "cat": "raciocinio", "q": "explica dívida técnica pra quem não programa"}
+{"id": 89, "cat": "raciocinio", "q": "se uma IA local erra menos que um médico num diagnóstico, ela deveria dar a palavra final?"}
+{"id": 90, "cat": "raciocinio", "q": "por que multitarefa rende menos que foco sequencial?"}
+{"id": 91, "cat": "raciocinio", "q": "explica regressão à média usando futebol"}
+{"id": 92, "cat": "raciocinio", "q": "qual a diferença entre ser cético e ser do contra?"}
+{"id": 93, "cat": "raciocinio", "q": "por que 'correlação não é causalidade' importa na vida real? me dá um exemplo"}
+{"id": 94, "cat": "raciocinio", "q": "vale a pena pagar caro em ferramenta boa quando se tá começando?"}
+{"id": 95, "cat": "raciocinio", "q": "explica o problema de otimizar uma métrica só, com um exemplo"}
+{"id": 96, "cat": "raciocinio", "q": "por que código legível vale mais que código esperto?"}
+{"id": 97, "cat": "raciocinio", "q": "como decidir entre consertar um sistema velho e reescrever do zero?"}
+{"id": 98, "cat": "raciocinio", "q": "explica entropia pra um adolescente, sem fórmula"}
+{"id": 99, "cat": "raciocinio", "q": "por que a primeira solução que funciona raramente é a melhor?"}
+{"id": 100, "cat": "raciocinio", "q": "o que separa um bom professor de alguém que só sabe muito?"}
