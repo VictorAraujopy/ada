@@ -32,7 +32,7 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 - **Training** — LoRA / QLoRA (4-bit) on a cloud GPU, then converted to MLX to run locally
 - **Inference** — MLX on Apple Silicon's unified memory; the 9B fits in 16 GB at 4-bit, fully offline
 - **Tools** — the model reasons, picks a tool, runs it, then answers — no hardcoded intent matching
-- **Evaluation** — versions are compared on a fixed 50-question benchmark: 5 objective categories scored by script against an answer key, plus blind-judged reasoning (see `6_benchmark/`)
+- **Evaluation** — versions are compared on a fixed 100-question benchmark: 5 objective categories scored by script against an answer key, plus blind-judged reasoning (see `6_benchmark/`)
 
 ## Repo layout
 

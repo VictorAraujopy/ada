@@ -42,7 +42,7 @@ FAKE = os.environ.get("ADA_FAKE") == "1"
 # Config, system prompt e params de geração vivem TODOS no núcleo (1_ada/cerebro.py).
 # Aqui o backend só importa e repassa. No modo FAKE o núcleo nem é carregado (sem MLX), então
 # o SYSTEM fica vazio (os eventos de mentira ignoram); o worker o preenche ao carregar de verdade.
-ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11_a16_9b"))  # só pro /info
+ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11b_a16_9b"))  # só pro /info
 SYSTEM = ""  # preenchido pelo worker com cerebro.SYSTEM quando o modelo carrega
 
 
