@@ -42,8 +42,19 @@ FAKE = os.environ.get("ADA_FAKE") == "1"
 # Config, system prompt e params de geração vivem TODOS no núcleo (1_ada/cerebro.py).
 # Aqui o backend só importa e repassa. No modo FAKE o núcleo nem é carregado (sem MLX), então
 # o SYSTEM fica vazio (os eventos de mentira ignoram); o worker o preenche ao carregar de verdade.
-ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11b_a16_9b"))  # só pro /info
-SYSTEM = ""  # preenchido pelo worker com cerebro.SYSTEM quando o modelo carrega
+ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11b_a16_9b_fp32"))  # só pro /info
+SYSTEMS = {"victor": "", "convidado": ""}  # preenchidos pelo worker quando o modelo carrega
+
+# Identidade por origem: requisição da máquina do Victor = victor; resto = convidado.
+# IPs extras dele (celular etc.): ADA_IPS_VICTOR=100.x.y.z,100.a.b.c
+IPS_VICTOR = ({"127.0.0.1", "::1"}
+              # o IP que o PRÓPRIO servidor escuta: requisição da máquina pra ela mesma = Victor
+              | ({os.environ["ADA_HOST"]} if os.environ.get("ADA_HOST") else set())
+              | {ip.strip() for ip in os.environ.get("ADA_IPS_VICTOR", "").split(",") if ip.strip()})
+
+
+def usuario_de(req: Request) -> str:
+    return "victor" if (req.client and req.client.host in IPS_VICTOR) else "convidado"
 
 
 @dataclass
@@ -75,14 +86,17 @@ def _eventos_fake(historico):
 
 def worker():
     """Thread única dona do modelo: carrega uma vez e processa um job por vez."""
-    global SYSTEM
+    global SYSTEMS
     if FAKE:
         gerar = _eventos_fake
         print("[interface] MODO FAKE — sem modelo, eventos de mentira")
     else:
         import cerebro  # núcleo da ADA (só carrega o MLX fora do modo FAKE)
 
-        SYSTEM = cerebro.SYSTEM
+        SYSTEMS["victor"] = cerebro.SYSTEM
+        # SYSTEM_CONVIDADO é definido no cerebro.py (persona do convidado);
+        # enquanto não existir, ela recebe o system padrão (sem a linha do criador? não — fallback igual)
+        SYSTEMS["convidado"] = getattr(cerebro, "SYSTEM_CONVIDADO", cerebro.SYSTEM)
         print(f"[interface] carregando a ADA ({Path(cerebro.ADAPTER).name})... (uns 30-60s)")
         model, processor, config = cerebro.carregar()
 
@@ -105,6 +119,7 @@ def worker():
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=FRONT), name="static")
+print(f"[interface] IPs tratados como Victor: {sorted(IPS_VICTOR)}")
 threading.Thread(target=worker, daemon=True).start()
 
 
@@ -114,21 +129,22 @@ def index():
 
 
 @app.get("/info")
-def info():
+def info(req: Request):
     """A UI consulta isto pra saber se já pode liberar o input."""
     return {"pronta": pronta.is_set(), "adapter": Path(ADAPTER).name,
-            "fake": FAKE, "fila": jobs.qsize()}
+            "fake": FAKE, "fila": jobs.qsize(),
+            "usuario": usuario_de(req), "origem": req.client.host if req.client else "?"}
 
 
 @app.get("/conversas")
-def conversas():
-    return armazem.listar()
+def conversas(req: Request):
+    return armazem.listar(usuario_de(req))
 
 
 @app.post("/conversas")
 async def criar_conversa(req: Request):
     corpo = await req.json()
-    return armazem.criar(corpo.get("titulo", ""))
+    return armazem.criar(corpo.get("titulo", ""), dono=usuario_de(req))
 
 
 @app.get("/conversas/{cid}")
@@ -146,6 +162,14 @@ async def renomear_conversa(cid: str, req: Request):
     if not novo:
         return JSONResponse({"erro": "título vazio"}, status_code=400)
     return {"ok": True, "titulo": novo}
+
+
+@app.post("/avaliar")
+async def avaliar(req: Request):
+    """Feedback 👍/👎 numa fala da ADA — a matéria-prima do treino por preferência."""
+    corpo = await req.json()
+    ok = armazem.avaliar(corpo.get("conversa", ""), corpo.get("voto"), corpo.get("n"))
+    return {"ok": ok}
 
 
 @app.delete("/conversas/{cid}")
@@ -182,8 +206,8 @@ async def chat(req: Request):
         return JSONResponse({"erro": "a ADA ainda está carregando"}, status_code=503)
 
     armazem.gravar(cid, "user", msg)
-    # o histórico do modelo é remontado do banco: system + turnos (sem os metas)
-    historico = ([{"role": "system", "content": SYSTEM}] +
+    # o histórico do modelo é remontado do banco: system DO USUÁRIO + turnos
+    historico = ([{"role": "system", "content": SYSTEMS[usuario_de(req)]}] +
                  [{"role": m["role"], "content": m["content"]} for m in armazem.mensagens(cid)])
     job = Job(historico=historico)
     jobs.put(job)
@@ -214,5 +238,10 @@ async def chat(req: Request):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=int(os.environ.get("ADA_PORT", 8000)),
-                log_level="warning")
+    # ADA_HOST: 127.0.0.1 (so esta maquina) | IP do Tailscale (so a tailnet — modo convidado)
+    # NUNCA use 0.0.0.0 sem firewall: exporia a ADA pra rede local inteira.
+    # `or`: ADA_HOST vazio (ex.: $(tailscale ip) que falhou) NUNCA pode virar 0.0.0.0
+    host = os.environ.get("ADA_HOST") or "127.0.0.1"
+    print(f"[interface] escutando em http://{host}:{os.environ.get('ADA_PORT', 8000)}")
+    uvicorn.run(app, host=host,
+                port=int(os.environ.get("ADA_PORT", 8000)), log_level="warning")

@@ -261,3 +261,14 @@ footer { padding: 14px var(--faixa) 12px; border-top: 1px solid var(--line);
   .empty-ada { font-size: 64px; letter-spacing: 16px; margin-right: -16px; }
   .sub { display: none; }
 }
+
+/* feedback por resposta — discreto, na paleta da casa */
+.votos { margin-top: 8px; display: flex; gap: 6px; }
+.voto {
+  background: transparent; border: 1px solid var(--line); clip-path: var(--corte);
+  color: var(--dim); font-family: var(--mono); font-size: 11px;
+  padding: 3px 10px; cursor: pointer; opacity: .5; transition: .15s;
+}
+.voto:hover { opacity: 1; color: var(--ink); border-color: var(--blood2); }
+.voto.ativo { opacity: 1; color: var(--bloodink); border-color: var(--blood);
+              box-shadow: inset 0 0 10px rgba(179,23,29,.25); }

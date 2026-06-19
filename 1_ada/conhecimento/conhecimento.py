@@ -27,7 +27,9 @@ def carregar_conhecimento():
     return (
         "## BASE DE CONHECIMENTO (fatos confiáveis)\n"
         "Use os fatos abaixo quando forem relevantes. NÃO invente fora disto: se algo "
-        "não está aqui e você não tem certeza, diga que não sabe.\n\n"
+        "não está aqui e você não tem certeza, diga que não sabe. A regra vale nos dois "
+        "sentidos: o que ESTÁ escrito aqui (ou em qualquer parte deste sistema) você SABE "
+        "com certeza — usar não é inventar, e negar conhecer é errado.\n\n"
         + corpo
     )
 

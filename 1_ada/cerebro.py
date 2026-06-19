@@ -40,7 +40,7 @@ POOL = json.loads((Path(__file__).resolve().parent / "tools_pool.json").read_tex
 # --- config do cérebro (fonte de verdade única) ---
 MODELO = "mlx-community/Qwen3.5-9B-MLX-4bit"
 # ADA_ADAPTER escolhe a versão (default ada_v11b_a16_9b, o 9B treinado na nuvem); ADA_ADAPTER=ada_v5 volta pro antigo
-ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11b_a16_9b"))
+ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11b_a16_9b_fp32"))
 # parametros de geracao padrao (canonico: veio do chat 1
 #   max_tokens solto: nunca corta o think+resposta, teto so de seguranca (anti-loop)
 #   temperature 0.5: o 9B aguenta mais solta sem virar aleatorio
@@ -49,11 +49,23 @@ ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11b_a16_9b"
 GEN = dict(max_tokens=4096, temperature=0.5, top_p=0.9, repetition_penalty=1.0)
 
 
-def montar_system(voz=False):
+PERSONA_VICTOR = "Usuário atual: Victor, seu criador. Seja direta e objetiva não invente informações."
+# Persona do convidado: GENÉRICA aqui (vai pro repo público). Os dados reais de um
+# convidado específico ficam em personas_local.py (NÃO versionado) — privacidade de
+# terceiros nunca vai pro repositório.
+PERSONA_CONVIDADO = ("Usuária atual: visitante (não é o Victor, não é sua criadora). "
+                     "Seja gentil e objetiva, não invente informações.")
+try:
+    from personas_local import PERSONA_CONVIDADO  # sobrescreve com a pessoa real, se existir
+except ImportError:
+    pass
+
+
+def montar_system(voz=False, persona=PERSONA_VICTOR):
     """Monta o system prompt da ADA. voz=True acrescenta a instrucao de fala (direto ao
     ponto + usar ferramentas). A base de conhecimento (RAG) entra no fim, a menos que
     ADA_BASE=off (teste do cerebro puro, sem fatos injetados)."""
-    partes = ["Usuário atual: Victor, seu criador. Seja direta e objetiva não invente informações."]
+    partes = [persona]
     if voz:
         partes.append("Você responde por voz, então vá direto ao ponto. Se o pedido pede uma "
                        "ferramenta (hora, status, app, música...), use a ferramenta — você não "
@@ -65,7 +77,8 @@ def montar_system(voz=False):
     return "\n\n".join(partes)
 
 
-SYSTEM = montar_system()              # texto / web
+SYSTEM = montar_system()              # texto / web (Victor)
+SYSTEM_CONVIDADO = montar_system(persona=PERSONA_CONVIDADO)  # web quando quem chama não é o Victor
 SYSTEM_VOZ = montar_system(voz=True)  # voz
 
 

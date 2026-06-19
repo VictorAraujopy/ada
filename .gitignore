@@ -45,3 +45,13 @@ docs/
 # Benchmark: o harness (scripts + perguntas) é público; os RESULTADOS são pessoais
 6_benchmark/resultados/
 _modelo/*_fp32/
+
+# Estratégia de dataset = proprietária (planos e checkpoints do build, na raiz)
+/PLANO_DATASET_V12.md
+/CONTINUAR_DATASET.md
+
+# Personas com dados pessoais reais (privacidade de terceiros — uso local)
+1_ada/personas_local.py
+
+# Andaime de pronome (gambiarra temporária até o v12 aprender; não é produto)
+1_ada/conhecimento/base/quem_e_quem.md
