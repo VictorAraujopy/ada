@@ -1,12 +1,3 @@
-"""
-Gera o gráfico de comparação (SVG, identidade visual da ADA) a partir do
-placar.json + julgamento_cego.md preenchido.
-
-    .venv/bin/python 2_treino/v11_build/benchmark/gerar_grafico.py
-
-Sai grafico_benchmark.svg — abre no navegador, dá zoom e tira o screenshot
-pro LinkedIn (ou exporta PNG com qualquer conversor).
-"""
 import json
 import re
 from pathlib import Path

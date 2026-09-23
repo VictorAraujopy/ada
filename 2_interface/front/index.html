@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ADA</title>
 <link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/fluxo.css">
+<link rel="stylesheet" href="/static/chrome.css">
+<link rel="stylesheet" href="/static/painel.css">
 </head>
 <body>
 <div class="app">
@@ -30,7 +33,7 @@
       <div class="actions">
         <div class="badge off" id="badge">
           <svg class="ekg" viewBox="0 0 64 20" aria-hidden="true">
-            <polyline points="0,10 13,10 18,3 23,17 28,10 38,10 43,6 47,14 51,10 64,10"/>
+            <polyline points="0,10 13,10 18,3 23,17 28,10 38,10 43,6 47,14 51,10 64,10"></polyline>
           </svg>
           <span id="estado">carregando</span>
         </div>
@@ -48,6 +51,18 @@
       <div class="rodape-nota">9B rodando neste Mac — cada palavra nasce aqui.</div>
     </footer>
   </div>
+
+  <aside id="painel">
+    <div class="pnl-in">
+      <div class="pnl-top">
+        <div class="pnl-titulo"><span class="pnl-led"></span> operação · ao vivo</div>
+        <button class="pnl-x" id="pnlX" title="fechar">✕</button>
+      </div>
+      <div class="pnl-fase" id="pnlFase"></div>
+      <div class="pnl-corpo" id="pnlCorpo"></div>
+      <div class="pnl-rodape">tudo acontece neste mac</div>
+    </div>
+  </aside>
 </div>
 
 <template id="tpl-empty">
@@ -65,6 +80,9 @@
   </div>
 </template>
 
+<script src="/static/icones.js"></script>
+<script src="/static/pensar.js"></script>
+<script src="/static/painel.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

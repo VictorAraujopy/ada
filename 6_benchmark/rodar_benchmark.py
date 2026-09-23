@@ -1,13 +1,4 @@
-"""
-Roda as 50 perguntas do benchmark num adapter e salva as respostas BRUTAS.
-(O harness: perguntas fixas, condições fixas — só o adapter muda entre rodadas.)
 
-    ADA_ADAPTER=ada_v10_9b      .venv/bin/python 6_benchmark/rodar_benchmark.py
-    ADA_ADAPTER=ada_v11b_a16_9b .venv/bin/python 6_benchmark/rodar_benchmark.py
-
-Sai bench_<adapter>.json nesta pasta. Cada pergunta roda em conversa limpa,
-com o system real de produção (cerebro.SYSTEM) e tools ativas.
-"""
 import json
 import sys
 import time
@@ -53,6 +44,20 @@ cerebro.executar = _executar_mock   # o runtime real fica intocado; só aqui é 
 
 perguntas = [json.loads(l) for l in open(AQUI / "perguntas.jsonl", encoding="utf-8")]
 nome = Path(cerebro.ADAPTER).name
+
+# GUARDA-CORPO: rodada interrompida não pode destruir um resultado COMPLETO.
+# (Aconteceu: uma run morta no meio sobrescreveu o baseline do v11b com 65 respostas
+# parciais, e só se descobre na hora de comparar.) Resultado completo vira .bak.
+_saida = AQUI / "resultados" / f"bench_{nome}.json"
+if _saida.exists():
+    try:
+        _antigo = json.loads(_saida.read_text(encoding="utf-8"))
+    except Exception:
+        _antigo = []
+    if len(_antigo) >= len(perguntas):
+        _bak = _saida.with_suffix(".json.bak")
+        _saida.replace(_bak)
+        print(f"[bench] resultado completo anterior ({len(_antigo)}) preservado em {_bak.name}")
 print(f"[bench] {nome} — {len(perguntas)} perguntas, tools MOCKADAS (~1h-1h30)")
 (AQUI / "resultados").mkdir(exist_ok=True)
 model, processor, config = cerebro.carregar()

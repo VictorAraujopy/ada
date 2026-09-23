@@ -1,21 +1,4 @@
-"""
-Interface web da ADA — backend.
 
-Arquitetura: o MLX precisa de UMA thread dona do modelo, então um worker único
-consome uma fila de jobs. Cada POST /chat vira um job com a SUA fila de saída —
-o endpoint streama os eventos dela via SSE, e conversas não se misturam.
-
-As conversas vivem no SQLite (armazem.py): sobrevivem a F5 e a reinício do
-servidor. O histórico que vai pro modelo é remontado do banco a cada turno.
-
-O cérebro é caixa-preta aqui: tudo passa por cerebro.responder_eventos().
-
-Rodar:
-    .venv/bin/python 2_interface/back/server.py        # abre http://localhost:8000
-Trocar de versão:   ADA_ADAPTER=ada_v9_9b .venv/bin/python 2_interface/back/server.py
-Testar a interface SEM carregar o 9B (eventos de mentira, resposta na hora):
-    ADA_FAKE=1 .venv/bin/python 2_interface/back/server.py
-"""
 import json
 import os
 import queue
@@ -40,13 +23,13 @@ sys.path.insert(0, str(RAIZ / "1_ada"))
 FAKE = os.environ.get("ADA_FAKE") == "1"
 
 # Config, system prompt e params de geração vivem TODOS no núcleo (1_ada/cerebro.py).
-# Aqui o backend só importa e repassa. No modo FAKE o núcleo nem é carregado (sem MLX), então
+# Aqui o backend só importa e repassa. No modo FAKE o núcleo nem é carregado (sem o modelo), então
 # o SYSTEM fica vazio (os eventos de mentira ignoram); o worker o preenche ao carregar de verdade.
-ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11b_a16_9b_fp32"))  # só pro /info
+# só pro /info — mesmo nome que o cerebro.py usa (ADA_ADAPTER="" roda o 27B cru)
+ADAPTER = os.environ.get("ADA_ADAPTER", "ada_v12_1_en_a16_27b") or "qwen3.8_27b_cru"
 SYSTEMS = {"victor": "", "convidado": ""}  # preenchidos pelo worker quando o modelo carrega
 
 # Identidade por origem: requisição da máquina do Victor = victor; resto = convidado.
-# IPs extras dele (celular etc.): ADA_IPS_VICTOR=100.x.y.z,100.a.b.c
 IPS_VICTOR = ({"127.0.0.1", "::1"}
               # o IP que o PRÓPRIO servidor escuta: requisição da máquina pra ela mesma = Victor
               | ({os.environ["ADA_HOST"]} if os.environ.get("ADA_HOST") else set())
@@ -91,7 +74,7 @@ def worker():
         gerar = _eventos_fake
         print("[interface] MODO FAKE — sem modelo, eventos de mentira")
     else:
-        import cerebro  # núcleo da ADA (só carrega o MLX fora do modo FAKE)
+        import cerebro  # núcleo da ADA (só carrega o modelo fora do modo FAKE)
 
         SYSTEMS["victor"] = cerebro.SYSTEM
         # SYSTEM_CONVIDADO é definido no cerebro.py (persona do convidado);

@@ -1,7 +1,3 @@
-"""
-Helpers compartilhados por todas as tools: rodar comandos do macOS sem nunca explodir.
-Erro vira texto (que a ADA le e reporta), em vez de derrubar o programa.
-"""
 import subprocess
 
 
@@ -11,7 +7,7 @@ def sh(cmd, timeout=10):
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         return (r.stdout or r.stderr).strip()
     except Exception as e:
-        return f"erro: {e}"
+        return f"error: {e}"
 
 
 def osa(script):

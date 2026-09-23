@@ -1,12 +1,4 @@
-"""
-Chat interativo com a ADA no terminal.
 
-Carrega o cérebro (Qwen3.5-9B + adapter LoRA) via 1_ada/cerebro.py e mantém
-a conversa com histórico (multi-turn). Digite 'sair' pra encerrar.
-
-Rodar, da raiz do projeto:
-    .venv/bin/python 3_chat/chat_ada.py
-"""
 import os
 import sys
 from pathlib import Path

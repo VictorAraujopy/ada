@@ -1,8 +1,3 @@
-/* ADA — frontend do chat.
-   Conversas persistentes: a sidebar lista o que tá no SQLite do backend;
-   abrir uma conversa re-renderiza tudo (think, tools, resposta, métricas)
-   a partir do banco. Cada envio abre um stream SSE e desenha ao vivo. */
-
 const chat    = document.getElementById('chat');
 const form    = document.getElementById('form');
 const input   = document.getElementById('msg');
@@ -13,6 +8,7 @@ const lista   = document.getElementById('lista');
 const btnExp  = document.getElementById('exportar');
 const appEl   = document.querySelector('.app');
 const tplEmpty = document.getElementById('tpl-empty');
+const mkThink = window.ADA_criarThink;
 
 let conversa = localStorage.adaConversa || null;  // id da conversa aberta
 let ocupado = false;        // true enquanto uma resposta streama
@@ -26,6 +22,8 @@ const el = (cls, txt) => {
   return d;
 };
 
+const REGEX_RECUSA = /n[ãa]o (vou|posso|toco|faço)|recus|irrevers[íi]vel|desarmad|destrutiv|sem confirmar/i;
+
 /* ---------- markdown leve (escapa primeiro, depois formata) ---------- */
 
 function md(t) {
@@ -33,6 +31,7 @@ function md(t) {
   h = h.replace(/```\w*\n?([\s\S]*?)```/g, (_, c) => `<pre><code>${c.trim()}</code></pre>`);
   h = h.replace(/`([^`\n]+)`/g, '<code>$1</code>');
   h = h.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*([^*\n]+)\*/g, '<em style="color:var(--bloodink)">$1</em>');
   return h;
 }
 
@@ -43,6 +42,12 @@ const fmtTempo = (ts) => {
   if (s < 86400) return Math.round(s / 3600) + 'h';
   return new Date(ts * 1000).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 };
+
+/* deriva a "decisão" (carimbo) a partir do que a ADA fez — o backend não a emite */
+function derivarDecisao(tools, resposta) {
+  if (tools.length) return 'AÇÃO · ' + tools.map(t => t.nome).join(' → ');
+  return REGEX_RECUSA.test(resposta) ? 'TEXTO · recusou — ação desarmada' : 'TEXTO · sem ferramenta';
+}
 
 /* ---------- prontidão: pergunta ao /info até o modelo carregar ---------- */
 
@@ -146,32 +151,18 @@ function addUser(txt) {
   scroll();
 }
 
+/* mensagem da ADA: avatar + linha do raciocínio (clicável) + resposta */
 function addAda() {
   const m = el('msg ada');
   const av = el('avatar'); av.textContent = 'A';
   const body = el('body');
-  const think = el('thinking live');
-  const head = el('thinking-head');
-  head.appendChild(el('', 'pensando'));
-  const tbody = el('thinking-body');
-  think.append(head, tbody);
-  head.onclick = () => think.classList.toggle('collapsed');
-  const tools = el('tools');
+  const drv = mkThink();
+  drv.root.onclick = () => { if (m._op) Painel.mostrarCenario(m._op); };
   const answer = el('answer');
-  body.append(think, tools, answer);
+  body.append(drv.root, answer);
   m.append(av, body);
   chat.appendChild(m);
-  return { m, body, think, head, tbody, tools, answer, t0: performance.now(), pensou: false };
-}
-
-function addTool(g, nome, res) {
-  const c = el('tool');
-  const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = nome;
-  const rs = document.createElement('span'); rs.className = 'rs'; rs.textContent = '→ ' + String(res).slice(0, 80);
-  const ok = document.createElement('span'); ok.className = 'ok'; ok.textContent = '✓';
-  c.append(nm, rs, ok);
-  g.tools.appendChild(c);
-  scroll();
+  return { m, body, think: drv, answer, t0: performance.now() };
 }
 
 function addVotos(container, n, atual) {
@@ -198,30 +189,11 @@ function addErro(txt) {
   scroll();
 }
 
-function colapsaThink(g, segundos) {
-  if (g.pensou) return;
-  g.pensou = true;
-  const s = segundos ?? ((performance.now() - g.t0) / 1000).toFixed(1);
-  g.think.classList.remove('live');
-  g.think.classList.add('collapsed');
-  g.head.textContent = '';
-  g.head.appendChild(el('', `pensou por ${s}s`));
-  const caret = document.createElement('span'); caret.className = 'caret'; caret.textContent = '▾';
-  g.head.appendChild(caret);
-  if (!g.tbody.textContent.trim()) g.think.remove();   // não pensou nada: some o bloco
-}
-
-function addMetricas(g, pensouS, respondeuS, chars) {
-  const toks = respondeuS > 0 ? Math.round((chars / 4) / respondeuS) : null;
-  const partes = [`pensou ${pensouS}s`, `respondeu ${respondeuS}s`];
-  if (toks) partes.push(`~${toks} tok/s`);
-  g.body.appendChild(el('metricas', partes.join(' · ')));
-}
-
 /* ---------- abrir conversa (restaura do banco) ---------- */
 
 async function abrir(id) {
   if (ocupado) aborto?.abort();
+  Painel.fechar();
   const r = await fetch('/conversas/' + id);
   if (!r.ok) { conversa = null; marcarAtiva(); telaVazia(); return; }
   const c = await r.json();
@@ -231,11 +203,19 @@ async function abrir(id) {
     if (msg.role === 'user') { addUser(msg.content); continue; }
     const g = addAda();
     const meta = msg.meta || {};
-    g.tbody.textContent = meta.think || '';
-    colapsaThink(g, meta.pensou_s ?? '?');
-    for (const t of meta.tools || []) addTool(g, t.nome, t.res);
+    const tools = (meta.tools || []).map(t => ({ nome: t.nome, res: t.res }));
+    const pensouS = meta.pensou_s ?? 0, respondeuS = meta.respondeu_s ?? 0;
+    const total = (Number(pensouS) + Number(respondeuS)).toFixed(1);
+    g.think.concluir(total);
     g.answer.innerHTML = md(msg.content);
-    if (meta.pensou_s != null) addMetricas(g, meta.pensou_s, meta.respondeu_s, msg.content.length);
+    const tok = respondeuS > 0 ? Math.round((msg.content.length / 4) / respondeuS) : 0;
+    g.m._op = {
+      think: (meta.think || '').trim(),
+      decisao: derivarDecisao(tools, msg.content),
+      tools,
+      stats: { rac: pensouS, resp: respondeuS, tok, passos: tools.length },
+      recusa: !tools.length && REGEX_RECUSA.test(msg.content),
+    };
     addVotos(g.body, msg.n ?? null, meta.voto ?? null);
   }
   marcarAtiva();
@@ -246,6 +226,7 @@ async function abrir(id) {
 
 function novaConversa() {
   if (ocupado) aborto?.abort();
+  Painel.fechar();
   conversa = null;
   marcarAtiva();
   telaVazia();
@@ -253,7 +234,7 @@ function novaConversa() {
   input.focus();
 }
 
-/* ---------- envio + leitura do stream SSE ---------- */
+/* ---------- envio + leitura do stream SSE (dirige chat E painel) ---------- */
 
 async function enviar(txt) {
   if (ocupado || input.disabled) return;
@@ -279,16 +260,20 @@ async function enviar(txt) {
   addUser(txt);
   const g = addAda();
   g.m.classList.add('viva');   // avatar pulsa enquanto ela gera
+  Painel.reset();              // abre o painel, limpa, fase "raciocinando"
   const cur = document.createElement('span'); cur.className = 'cursor';
   g.answer.appendChild(cur);
   aborto = new AbortController();
 
   // se tem outra geração na frente (outra aba), avisa em vez de parecer travado
   fetch('/info').then(r => r.json()).then(i => {
-    if (i.fila > 0 && !g.pensou) g.tbody.before(el('fila-aviso', 'na fila — outra geração na frente…'));
+    if (i.fila > 0) g.think.root.before(el('fila-aviso', 'na fila — outra geração na frente…'));
   }).catch(() => {});
 
-  let pensouS = null, t_resp = null, resposta = '';
+  let pensouS = null, t_resp = null, resposta = '', prosa = '', fimRac = false;
+  const tools = [];
+  const fecharRaciocinio = () => { if (!fimRac) { fimRac = true; g.think.collapse(); } };
+
   try {
     const resp = await fetch('/chat', {
       method: 'POST',
@@ -313,24 +298,60 @@ async function enviar(txt) {
       for (const p of partes) {
         if (!p.startsWith('data: ')) continue;
         const ev = JSON.parse(p.slice(6));
-        if (ev.t === 'think') g.tbody.append(document.createTextNode(ev.d));
-        else if (ev.t === 'tool') { colapsaThink(g); addTool(g, ev.nome, ev.res); }
-        else if (ev.t === 'resp') {
+        if (ev.t === 'think') {
+          prosa += ev.d;
+          Painel.pensa(prosa);               // a prosa vai pro painel; a linha do chat fica "raciocinando…"
+        } else if (ev.t === 'tool') {
+          fecharRaciocinio();
+          Painel.setFase('<span class="ph">executando</span> <span class="arr">·</span> ' + ev.nome);
+          Painel.toolFeito(ev.nome, ev.res);  // a tool já rodou no backend: card nasce concluído
+          tools.push({ nome: ev.nome, res: ev.res });
+        } else if (ev.t === 'resp') {
           if (!t_resp) { t_resp = performance.now(); pensouS = ((t_resp - g.t0) / 1000).toFixed(1); }
-          colapsaThink(g, pensouS);
+          fecharRaciocinio();
+          Painel.setFase('<span class="ph">respondendo</span>');
           resposta += ev.d;
           cur.before(document.createTextNode(ev.d));
+        } else if (ev.t === 'erro') {
+          fecharRaciocinio();
+          addErro(ev.d);
+          Painel.bloqueio('bad', 'erro', ev.d);
         }
-        else if (ev.t === 'erro') { colapsaThink(g); addErro(ev.d); }
         scroll();
       }
     }
-    colapsaThink(g);
+    fecharRaciocinio();
+
     if (resposta.trim()) {
       cur.remove();
       g.answer.innerHTML = md(resposta);   // troca o texto cru pelo markdown renderizado
-      const respondeuS = t_resp ? ((performance.now() - t_resp) / 1000).toFixed(1) : 0;
-      addMetricas(g, pensouS ?? 0, Number(respondeuS), resposta.length);
+      const respondeuS = t_resp ? Number(((performance.now() - t_resp) / 1000).toFixed(1)) : 0;
+      const total = (Number(pensouS ?? 0) + respondeuS).toFixed(1);
+      const tok = respondeuS > 0 ? Math.round((resposta.length / 4) / respondeuS) : 0;
+      g.think.concluir(total);
+
+      // fecha o painel daquele turno: decisão (carimbo) + métricas + bloqueio se sem tool
+      const recusa = !tools.length && REGEX_RECUSA.test(resposta);
+      Painel.decisao(derivarDecisao(tools, resposta));
+      Painel.stats(pensouS ?? 0, respondeuS, tok, tools.length);
+      if (tools.length) {
+        Painel.setFase('<span class="ph">concluído</span> <span class="arr">·</span> ' + tools.length + (tools.length === 1 ? ' operação' : ' operações'));
+      } else {
+        Painel.setFase('<span class="ph">concluído</span> <span class="arr">·</span> sem ferramenta');
+        Painel.bloqueio(recusa ? 'bad' : 'ok',
+          recusa ? 'ação bloqueada' : 'resposta direta',
+          recusa ? 'gatilho irreversível — desarmado por segurança. ela parou e devolveu a decisão pra você.'
+                 : 'nada de ferramenta aqui — é conversa. ela respondeu de dentro.');
+      }
+      Painel.fim();
+
+      g.m._op = {
+        think: prosa.trim(),
+        decisao: derivarDecisao(tools, resposta),
+        tools,
+        stats: { rac: pensouS ?? 0, resp: respondeuS, tok, passos: tools.length },
+        recusa,
+      };
       addVotos(g.body, null, null);
     }
     g.m.querySelector('.fila-aviso')?.remove();
@@ -363,6 +384,7 @@ form.onsubmit = (e) => {
 };
 document.getElementById('nova').onclick = novaConversa;
 document.getElementById('menu').onclick = () => appEl.classList.toggle('menu-aberto');
+document.getElementById('pnlX').onclick = () => Painel.fechar();
 btnExp.onclick = () => { if (conversa) window.location = `/conversas/${conversa}/export`; };
 
 (async () => {

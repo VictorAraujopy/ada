@@ -11,6 +11,8 @@ __pycache__/
 *.safetensors
 !_modelo/ada_v10_9b/adapters.safetensors
 !_modelo/ada_v11b_a16_9b/adapters.safetensors
+# Adapters GGUF do 27B (~450MB, acima do limite do GitHub) — ficam só locais
+*.gguf
 # Versões antigas fora do GitHub
 _modelo/ada_v9_9b/
 _modelo/ada_v11_a16_9b/

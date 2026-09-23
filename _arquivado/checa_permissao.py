@@ -1,12 +1,3 @@
-"""
-Diz se a permissão de Acessibilidade está ATIVA pra este processo — é o que o
-pynput precisa pra capturar o botão do mouse e o Ctrl+L globalmente. Sem ela,
-nada do gatilho funciona (foi o 'not trusted' que apareceu no teste do mouse).
-
-    .venv/bin/python 6_assistente/checa_permissao.py
-
-Mostra SIM/NÃO e QUAL app você precisa liberar (sobe a árvore até achar o .app).
-"""
 import ctypes
 import os
 import subprocess

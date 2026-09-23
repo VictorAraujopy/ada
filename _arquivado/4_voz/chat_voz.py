@@ -1,20 +1,3 @@
-"""
-Chat com a ADA por VOZ: voce digita, ela responde FALANDO.
-
-Três etapas:
-  - PENSAR:   cérebro da ADA (6_assistente/cerebro.py) -> responde em PORTUGUES, onde a
-              ADA e ela mesma (sabe o nome, o tom, a favorita).
-  - TRADUZIR: argostranslate PT->EN -> a fala sai sem sotaque (a voz e clonada em EN).
-  - FALAR:    Qwen3-TTS 4bit -> clona a voz dela (4_voz/voz_ada.wav) e fala o ingles.
-
-No terminal voce ve a resposta em PT (a ADA real); a voz toca em EN.
-
-Este modulo e o WRAPPER de voz em volta do nucleo: re-expoe SYSTEM/carregar/responder
-(do cerebro) ja com a voz junto, pra ada_voz.py e ada.py (o daemon) so importarem daqui.
-
-Rodar, da raiz do projeto:
-    .venv/bin/python 4_voz/chat_voz.py
-"""
 import os
 import re
 import subprocess

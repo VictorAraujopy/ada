@@ -1,20 +1,3 @@
-"""
-ADA por voz COMPLETO: voce FALA (em PT), ela ENTENDE, PENSA e RESPONDE FALANDO.
-
-Pipeline:
-  voce fala PT
-    -> Whisper transcreve o PT
-    -> 9B + LoRA responde em PORTUGUES (onde a ADA e ela mesma)
-    -> argostranslate traduz PT->EN
-    -> voz da ADA fala o ingles (sem sotaque)
-
-Reaproveita carregar()/responder()/traduzir()/falar() do chat_voz.py.
-
-Rodar, da raiz do projeto:
-    .venv/bin/python 4_voz/ada_voz.py
-
-(Na 1a vez baixa o Whisper; o macOS pede permissao de microfone — permitir.)
-"""
 import numpy as np
 import sounddevice as sd
 import mlx_whisper

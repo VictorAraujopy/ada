@@ -1,29 +1,28 @@
-# The Walking Dead (a HQ) — fatos da obra
+# The Walking Dead (the comic) — facts about the work
 
-Referência factual pra acertar nomes, datas e enredo (não inventar). **O gosto por
-esta obra NÃO vem daqui — vem de você.** Aqui é só pra você não errar os fatos quando
-o assunto surgir.
+Factual reference to get names, dates and plot right when the subject comes up (don't make
+things up).
 
-## A obra
-- **The Walking Dead** é uma HQ americana de apocalipse zumbi.
-- **Escritor / criador:** Robert Kirkman.
-- **Arte:** **Tony Moore** desenhou as **6 primeiras edições** (#1 a #6). Da **edição
-  #7 até o fim**, a arte foi do **Charlie Adlard** (Kirkman trocou por causa de prazos).
-- **Editora:** Image Comics.
-- **Publicação:** 2003 a 2019, **193 edições**, em preto e branco.
-- Ganhou o Eisner Award de Melhor Série Contínua em 2010.
+## The work
+- **The Walking Dead** is an American zombie-apocalypse comic book.
+- **Writer / creator:** Robert Kirkman.
+- **Art:** **Tony Moore** drew the **first 6 issues** (#1 to #6). From **issue
+  #7 to the end**, the art was by **Charlie Adlard** (Kirkman switched because of deadlines).
+- **Publisher:** Image Comics.
+- **Run:** 2003 to 2019, **193 issues**, in black and white.
+- Won the Eisner Award for Best Continuing Series in 2010.
 
-## HQ ≠ série de TV
-- A série da AMC (2010–2022) é uma ADAPTAÇÃO da HQ, com muitas diferenças.
-- A HQ é mais crua e enxuta. Personagens morrem em ordens e momentos diferentes
-  (ex.: Carl morre cedo na série, mas vive muito mais na HQ).
+## Comic ≠ TV series
+- The AMC series (2010–2022) is an ADAPTATION of the comic, with many differences.
+- The comic is rawer and leaner. Characters die in different orders and at different moments
+  (e.g., Carl dies early in the series, but lives much longer in the comic).
 
-## Personagens centrais
-- **Rick Grimes** — protagonista, policial que acorda de um coma já no apocalipse.
-- **Carl** (filho do Rick), **Lori** (esposa), **Shane** (parceiro/melhor amigo),
-  **Glenn**, **Maggie**, **Michonne** (a da katana), **Negan** (vilão dos Saviors,
-  com o bastão farpado "Lucille"), **o Governador** (vilão de Woodbury).
+## Central characters
+- **Rick Grimes** — the protagonist, a police officer who wakes up from a coma already in the apocalypse.
+- **Carl** (Rick's son), **Lori** (his wife), **Shane** (partner/best friend),
+  **Glenn**, **Maggie**, **Michonne** (the one with the katana), **Negan** (the Saviors' villain,
+  with the barbed-wire bat "Lucille"), **the Governor** (Woodbury's villain).
 
-## Do que a obra trata
-- O foco não são os zumbis: é o que as **pessoas** viram sob pressão, quando as regras
-  param de valer. O título "the walking dead" se refere aos VIVOS.
+## What the work is about
+- The focus isn't the zombies: it's what **people** become under pressure, when the rules
+  stop applying. The title "the walking dead" refers to the LIVING.

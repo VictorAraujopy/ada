@@ -1,10 +1,12 @@
-# Dependências da ADA — IA pessoal local (Mac, Apple Silicon / MLX). Python 3.12.
+# Dependências da ADA — IA pessoal local (Mac, Apple Silicon / Metal). Python 3.12.
 #   python3 -m venv .venv && source .venv/bin/activate
 #   pip install -r requirements.txt
 
 # --- Cérebro + runtime (rodar a ADA no Mac) ---
 # (deps de VOZ comentadas — pipeline arquivado em _arquivado/; descomenta se voltar)
-mlx-vlm==0.5.0          # carrega o Qwen3.5-9B em MLX + aplica o adapter LoRA
+llama-cpp-python==0.3.35 # roda o Qwen3.8-27B em GGUF 3 bits na GPU (compila com Metal)
+huggingface_hub==1.17.0  # baixa o GGUF e o tokenizer
+mlx-vlm==0.5.0          # ADA antiga (Qwen3.5-9B em MLX) — benchmarks de comparação
 # mlx-whisper==0.4.3      # transcrição de voz (o "ouvido")
 # mlx-audio==0.4.3        # síntese de voz / TTS (a "boca")
 transformers==5.9.0     # tokenizer e chat template do Qwen

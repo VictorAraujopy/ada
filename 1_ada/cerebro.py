@@ -1,33 +1,15 @@
-"""
-Cérebro da ADA — núcleo único.
 
-Tudo que define "quem é a ADA" e como ela pensa mora aqui:
-  - config do modelo (base + adapter LoRA)
-  - system prompt (com a variação pra voz)
-  - carregar() do cérebro
-  - runtime de tools (responder / responder_stream / responder_eventos)
-
-As interfaces (terminal, voz, web, testes) só importam este módulo, montam o
-histórico e chamam um dos responder(). Pra trocar o adapter, o system prompt ou
-os parâmetros de geração, mexe SÓ aqui.
-
-Fluxo de um turno (responder):
-  1. monta o prompt com as tools no system (apply_chat_template tools=POOL)
-  2. gera -> se a ADA emitir <tool_call>: parseia (funcao + args), EXECUTA, injeta o
-     <tool_response> e gera DE NOVO -> resposta final
-  3. se nao emitir: e a resposta direta
-
-Depende de mlx_vlm, do pacote tools/ (funcoes reais) e de 1_ada/conhecimento (RAG).
-"""
+import atexit
 import json
 import os
 import re
 import sys
+from itertools import chain
 from pathlib import Path
 
-from mlx_vlm import load, generate, stream_generate
-from mlx_vlm.prompt_utils import apply_chat_template
-from mlx_vlm.trainer.utils import apply_lora_layers
+from huggingface_hub import hf_hub_download
+from llama_cpp import Llama
+from transformers import AutoTokenizer
 
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ / "1_ada"))
@@ -38,23 +20,25 @@ from conhecimento import carregar_conhecimento  # base de fatos confiáveis (RAG
 POOL = json.loads((Path(__file__).resolve().parent / "tools_pool.json").read_text(encoding="utf-8"))
 
 # --- config do cérebro (fonte de verdade única) ---
-MODELO = "mlx-community/Qwen3.5-9B-MLX-4bit"
-# ADA_ADAPTER escolhe a versão (default ada_v11b_a16_9b, o 9B treinado na nuvem); ADA_ADAPTER=ada_v5 volta pro antigo
-ADAPTER = str(RAIZ / "_modelo" / os.environ.get("ADA_ADAPTER", "ada_v11b_a16_9b_fp32"))
-# parametros de geracao padrao (canonico: veio do chat 1
-#   max_tokens solto: nunca corta o think+resposta, teto so de seguranca (anti-loop)
-#   temperature 0.5: o 9B aguenta mais solta sem virar aleatorio
-#   top_p 0.9: corta a cauda improvavel (anti-alucinacao) sem ficar decorado
-#   repetition_penalty 1.0: leve, o 9B repete bem menos que o 7B
-GEN = dict(max_tokens=4096, temperature=0.5, top_p=0.9, repetition_penalty=1.0)
+# Eu rodo o Qwen3.8-27B em GGUF de 3 bits: é o maior que cabe nos 16GB sem ficar burro (2.5 bits perde ~6 pontos).
+REPO = "ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF"
+ARQUIVO = "Qwen3.8-27B-GSQ-RCO-IQ3_XXS.gguf"
+# Eu monto o prompt com o tokenizer do modelo original: é o mesmo template do treino, com tools e thinking.
+BASE_HF = "Qwen/Qwen3.8-27B"
+# Só 16 das 64 camadas guardam contexto (as outras são DeltaNet, memória fixa): 64KB por token, 16k custa ~1GB.
+N_CTX = 16384
+# Eu escolho a versão com ADA_ADAPTER (pasta em _modelo/ com o adapter.gguf); o padrão é a ADA 27B que eu treinei.
+# ADA_ADAPTER="" roda o 27B cru, sem LoRA.
+_NOME_ADAPTER = os.environ.get("ADA_ADAPTER", "ada_v12_1_en_a16_27b")
+ADAPTER = str(RAIZ / "_modelo" / _NOME_ADAPTER) if _NOME_ADAPTER else "qwen3.8_27b_cru"
+# Eu mantenho esses params como padrão do meu modelo para o equilíbrio entre qualidade e estabilidade.
+GEN = dict(max_tokens=4096, temperature=0.5, top_p=0.9, repeat_penalty=1.0, stop=["<|im_end|>"])
 
 
-PERSONA_VICTOR = "Usuário atual: Victor, seu criador. Seja direta e objetiva não invente informações."
-# Persona do convidado: GENÉRICA aqui (vai pro repo público). Os dados reais de um
-# convidado específico ficam em personas_local.py (NÃO versionado) — privacidade de
-# terceiros nunca vai pro repositório.
-PERSONA_CONVIDADO = ("Usuária atual: visitante (não é o Victor, não é sua criadora). "
-                     "Seja gentil e objetiva, não invente informações.")
+PERSONA_VICTOR = "Current user: Victor, your creator. Be direct and objective, don't make things up."
+# Eu mantenho a persona do visitante genérica no repo e deixo os dados reais em personas_local.py.
+PERSONA_CONVIDADO = ("Current user: visitor (not Victor, not your creator). "
+                     "Be kind and objective, don't make things up.")
 try:
     from personas_local import PERSONA_CONVIDADO  # sobrescreve com a pessoa real, se existir
 except ImportError:
@@ -62,14 +46,12 @@ except ImportError:
 
 
 def montar_system(voz=False, persona=PERSONA_VICTOR):
-    """Monta o system prompt da ADA. voz=True acrescenta a instrucao de fala (direto ao
-    ponto + usar ferramentas). A base de conhecimento (RAG) entra no fim, a menos que
-    ADA_BASE=off (teste do cerebro puro, sem fatos injetados)."""
+    """Eu monto o system prompt e, se for voz, acrescento a instrução de falar de forma direta."""
     partes = [persona]
     if voz:
-        partes.append("Você responde por voz, então vá direto ao ponto. Se o pedido pede uma "
-                       "ferramenta (hora, status, app, música...), use a ferramenta — você não "
-                       "tem relógio nem sensores próprios.")
+        partes.append("You answer by voice, so get straight to the point. If the request calls for a "
+                       "tool (time, status, app, music...), use the tool — you don't have a clock "
+                       "or sensors of your own.")
     if os.environ.get("ADA_BASE", "on") != "off":
         base = carregar_conhecimento()
         if base:
@@ -83,16 +65,20 @@ SYSTEM_VOZ = montar_system(voz=True)  # voz
 
 
 def carregar():
-    """Carrega o base (Qwen3.5-9B) e aplica o LoRA da ADA. Retorna (model, processor, config)."""
-    model, processor = load(MODELO, processor_config={"trust_remote_code": True})
-    config = model.config.__dict__
-    model = apply_lora_layers(model, ADAPTER)
-    return model, processor, config
+    """Eu abro o GGUF no llama.cpp com tudo na GPU e pego o tokenizer só pra montar o prompt."""
+    lora = str(Path(ADAPTER) / "adapter.gguf") if _NOME_ADAPTER else None
+    # flash_attn: sem ele a atenção monta uma matriz de ~800MB com 16k de contexto e estoura a GPU
+    llm = Llama(model_path=hf_hub_download(REPO, ARQUIVO), n_ctx=N_CTX, n_gpu_layers=-1,
+                flash_attn=True, lora_path=lora, verbose=False)
+    # fecho o modelo antes do Python encerrar: sem isso o Metal é desligado com a memória da GPU
+    # ainda registrada e o processo aborta na saída (GGML_ASSERT, código 134) — com LoRA sempre acontece
+    atexit.register(llm.close)
+    tok = AutoTokenizer.from_pretrained(BASE_HF)
+    return llm, tok, None  # devolvo 3 coisas como antes: interface, terminal e benchmark não mudam
 
 
 def parse_tool_calls(texto):
-    """Extrai TODAS as (funcao, args) dos <tool_call> do texto — a ADA pode pedir varias
-    num turno so (ex: fechar 2 apps). Lista vazia se nao houver nenhuma."""
+    """Eu extraio todas as chamadas de tool do texto para executar no turno."""
     chamadas = []
     for bloco in re.findall(r"<tool_call>(.*?)</tool_call>", texto, re.DOTALL):
         fn = re.search(r"<function=(\w+)>", bloco)
@@ -105,170 +91,128 @@ def parse_tool_calls(texto):
 
 
 def executar(nome, args):
-    """Roda a funcao real da tool. Desconhecida -> mensagem (nao explode)."""
+    """Eu executo a função real da tool e devolvo a mensagem em vez de explodir o programa."""
     fn = EXECUTORES.get(nome)
     if not fn:
-        return f"tool '{nome}' ainda nao implementada"
+        return f"tool '{nome}' not implemented yet"
     try:
         return fn(**args)
     except Exception as e:
-        return f"erro na tool {nome}: {e}"
+        return f"error in tool {nome}: {e}"
 
 
-def _limpa(texto):
-    """Tira o raciocinio. Com thinking ON, o <think> de ABERTURA fica no prompt, entao a
-    saida vem 'RACIOCINIO</think>RESPOSTA' -> pega so o que vem depois do </think>."""
-    if "</think>" in texto:
-        texto = texto.rsplit("</think>", 1)[-1]
-    return texto.strip()
+FIM_THINK, TOOL = "</think>", "<tool_call>"
 
 
-def _visivel(buf):
-    """Quanto do buffer pode ir pra tela como raciocinio, e se ele ja fechou.
-    Corta na PRIMEIRA sentinela: </think> (fim normal) ou <tool_call> (o modelo
-    pulou direto pra tool sem fechar o think — tool_call nunca e pra tela)."""
-    cortes = [buf.find(s) for s in ("</think>", "<tool_call>") if s in buf]
-    if not cortes:
-        return buf, False
-    return buf[:min(cortes)], True
+def _gerar(llm, tok, hist, pensando, gen_kw):
+    """Eu monto o prompt com o template oficial e vou soltando o texto conforme o modelo gera."""
+    # preserve_thinking=False: falas antigas entram sem bloco de raciocínio, igual ao treino
+    # (no padrão o 3.8 enfia um <think></think> vazio em cada uma)
+    prompt = tok.apply_chat_template(hist, tools=POOL, tokenize=False, add_generation_prompt=True,
+                                     enable_thinking=pensando, preserve_thinking=False)
+    for pedaco in llm(prompt, stream=True, **gen_kw):
+        yield pedaco["choices"][0]["text"]
 
 
-def responder(model, processor, config, historico, **gen_kw):
-    """Gera a resposta; se a ADA chamar uma tool, executa e gera a final.
-    Retorna (resposta, passo_tool) — passo_tool = (nome, args, resultado) ou None."""
+def _seguro(texto, marcas):
+    """Eu seguro o finalzinho do texto quando ele pode ser o começo de uma tag que ainda não chegou inteira."""
+    for n in range(min(len(texto), max(map(len, marcas)) - 1), 0, -1):
+        if any(m.startswith(texto[-n:]) for m in marcas):
+            return texto[:-n]
+    return texto
+
+
+def _partes(buf, pensando, final=False):
+    """Eu divido o texto gerado em (raciocínio, resposta, se o raciocínio fechou); do <tool_call> em diante nada aparece."""
+    guarda = (lambda t, _: t) if final else _seguro
+    think, resto, fechou = "", buf, not pensando
+    if pensando:
+        cortes = [buf.find(m) for m in (FIM_THINK, TOOL) if m in buf]
+        if not cortes:
+            return guarda(buf, (FIM_THINK, TOOL)), "", False
+        think, resto, fechou = buf[:min(cortes)], buf[min(cortes):].removeprefix(FIM_THINK), True
+    resp = resto.lstrip()
+    corte = resp.find(TOOL)
+    resp = resp[:corte] if corte >= 0 else guarda(resp, (TOOL,))
+    return think, resp, fechou
+
+
+def _fases(llm, tok, hist, pensando, gen_kw):
+    """Eu gero UMA vez e solto 'think' até o </think> e 'resp' depois dele; no fim devolvo o texto cru inteiro."""
+    buf, ditos = "", {"think": 0, "resp": 0}
+    for pedaco in chain(_gerar(llm, tok, hist, pensando, gen_kw), [None]):  # None = acabou, solto o que segurei
+        buf += pedaco or ""
+        think, resp, _ = _partes(buf, pensando, final=pedaco is None)
+        for tipo, texto in (("think", think), ("resp", resp)):
+            if len(texto) > ditos[tipo]:
+                yield {"t": tipo, "d": texto[ditos[tipo]:]}
+                ditos[tipo] = len(texto)
+    return buf
+
+
+def _falar(llm, tok, hist, gen_kw):
+    """Eu penso e respondo na mesma geração; se o raciocínio estourar o max_tokens sem fechar, respondo sem pensar."""
+    saida = yield from _fases(llm, tok, hist, True, gen_kw)
+    if not _partes(saida, True, final=True)[2]:
+        saida = yield from _fases(llm, tok, hist, False, gen_kw)
+    return saida
+
+
+def _como_mensagem(saida):
+    """Eu devolvo a fala da tool pro histórico do jeito que o Qwen3.8 lê: raciocínio no campo dele, não no texto."""
+    if FIM_THINK not in saida:
+        return {"role": "assistant", "content": saida.strip()}
+    think, resto = saida.split(FIM_THINK, 1)
+    return {"role": "assistant", "content": resto.strip(), "reasoning_content": think.strip()}
+
+
+def responder_eventos(llm, tok, config, historico, **gen_kw):
+    """Eu rodo a conversa inteira e solto eventos pra quem estiver ouvindo (interface, terminal e benchmark).
+    Eventos: {"t":"think","d":txt} | {"t":"tool","nome","args","res"} | {"t":"resp","d":txt} | {"t":"fim"}"""
     gen_kw.pop("enable_thinking", None)  # o thinking e controlado aqui dentro, nao vai pro generate
 
-    def _gen(hist, thinking=True):
-        prompt = apply_chat_template(processor, config, hist, add_generation_prompt=True,
-                                     num_images=0, enable_thinking=thinking, tools=POOL)
-        r = generate(model, processor, prompt, **gen_kw)
-        out = (r.text if hasattr(r, "text") else str(r)).strip()
-        # se o raciocinio estourou o max_tokens SEM fechar </think>, ele vazaria CRU pro usuario.
-        # nesse caso re-gera SEM thinking -> resposta direta e limpa (a ADA ja e treinada assim).
-        if thinking and "</think>" not in out:
-            return _gen(hist, thinking=False)
-        return out
+    # 1) PENSAR E RESPONDER — a resposta sai da mesma geração do raciocínio, então ela segue o que pensou
+    saida = yield from _falar(llm, tok, historico, gen_kw)
 
-    saida = _gen(historico)
+    # 2) TOOLS — executa todas e ela pensa de novo em cima dos resultados REAIS antes de responder
     chamadas = parse_tool_calls(saida)
-    if not chamadas:
-        return _limpa(saida), None
-
-    # executa TODAS as tools pedidas; a ADA responde com base nos resultados REAIS (sem alucinar)
-    passos, respostas = [], []
-    for nome, args in chamadas:
-        resultado = executar(nome, args)
-        passos.append((nome, args, resultado))
-        respostas.append(f"<tool_response>\n{resultado}\n</tool_response>")
-    hist2 = historico + [
-        {"role": "assistant", "content": saida},
-        {"role": "user", "content": "\n".join(respostas)},
-    ]
-    return _limpa(_gen(hist2)), passos
-
-
-def _token(chunk):
-    """Texto novo de um chunk do stream_generate (str ou objeto com .text)."""
-    return chunk if isinstance(chunk, str) else (getattr(chunk, "text", "") or "")
-
-
-def responder_stream(model, processor, config, historico, **gen_kw):
-    """MODO DEMO (pro video): streama o raciocinio AO VIVO (cinza) ate o </think>, executa
-    as tools, e streama a resposta final ao vivo. Printa direto no terminal.
-    Retorna (resposta, passos) como o responder() normal."""
-    gen_kw.pop("enable_thinking", None)
-
-    def pensa(hist):
-        prompt = apply_chat_template(processor, config, hist, add_generation_prompt=True,
-                                     num_images=0, enable_thinking=True, tools=POOL)
-        buf, impresso = "", 0   # impresso = nº de chars do raciocinio ja mostrados (None = parou)
-        print("\033[2m💭 ", end="", flush=True)  # cinza
-        for chunk in stream_generate(model, processor, prompt, **gen_kw):
-            buf += _token(chunk)
-            if impresso is None:
-                continue                              # think ja fechou; so acumula (pro tool_call)
-            visivel, fechou = _visivel(buf)           # so o raciocinio, SEM tag nem tool_call
-            if len(visivel) > impresso:
-                # mostra o pedaco novo — inclui a ULTIMA palavra mesmo grudada no </think>
-                print(visivel[impresso:], end="", flush=True)
-                impresso = len(visivel)
-            if fechou:
-                print("\033[0m", flush=True)          # fecha o cinza e para de mostrar
-                impresso = None
-        if impresso is not None:
-            print("\033[0m", flush=True)
-        return buf
-
-    def fala(hist):
-        prompt = apply_chat_template(processor, config, hist, add_generation_prompt=True,
-                                     num_images=0, enable_thinking=False, tools=POOL)
-        print("\033[96mADA>\033[0m ", end="", flush=True)
-        out = ""
-        for chunk in stream_generate(model, processor, prompt, **gen_kw):
-            t = _token(chunk)
-            out += t
-            print(t, end="", flush=True)            # resposta ao vivo
-        print()
-        return out.strip()
-
-    saida = pensa(historico)
-    chamadas = parse_tool_calls(saida)
-    passos, hist_final = None, historico
-    if chamadas:
-        passos, respostas = [], []
-        for nome, args in chamadas:
-            resultado = executar(nome, args)
-            passos.append((nome, args, resultado))
-            respostas.append(f"<tool_response>\n{resultado}\n</tool_response>")
-            print(f"\033[93m[{nome} → {resultado}]\033[0m")
-        hist_final = historico + [
-            {"role": "assistant", "content": saida},
-            {"role": "user", "content": "\n".join(respostas)},
-        ]
-    return fala(hist_final), passos  # SEMPRE streama a resposta ao vivo (com ou sem tool)
-
-
-def responder_eventos(model, processor, config, historico, **gen_kw):
-    """Como o responder_stream, mas YIELDA eventos (pra interface web) em vez de printar.
-    Eventos: {"t":"think","d":txt} | {"t":"tool","nome","args","res"} | {"t":"resp","d":txt} | {"t":"fim"}
-    Quem chama acumula os 'resp' pra montar a resposta final e guardar no historico."""
-    gen_kw.pop("enable_thinking", None)
-
-    def _stream(hist, thinking):
-        prompt = apply_chat_template(processor, config, hist, add_generation_prompt=True,
-                                     num_images=0, enable_thinking=thinking, tools=POOL)
-        for chunk in stream_generate(model, processor, prompt, **gen_kw):
-            yield _token(chunk)
-
-    # 1) PENSAR — emite so o raciocinio (ate o </think>), com o fix da ultima palavra
-    buf, impresso = "", 0
-    for tok in _stream(historico, True):
-        buf += tok
-        if impresso is None:
-            continue
-        visivel, fechou = _visivel(buf)
-        if len(visivel) > impresso:
-            yield {"t": "think", "d": visivel[impresso:]}
-            impresso = len(visivel)
-        if fechou:
-            impresso = None
-    saida = buf
-
-    # 2) TOOLS — executa todas, um evento por tool
-    chamadas = parse_tool_calls(saida)
-    hist_final = historico
     if chamadas:
         respostas = []
         for nome, args in chamadas:
             resultado = executar(nome, args)
             yield {"t": "tool", "nome": nome, "args": args, "res": str(resultado)}
             respostas.append(f"<tool_response>\n{resultado}\n</tool_response>")
-        hist_final = historico + [
-            {"role": "assistant", "content": saida},
-            {"role": "user", "content": "\n".join(respostas)},
-        ]
-
-    # 3) FALAR — streama a resposta final (sem thinking)
-    for tok in _stream(hist_final, False):
-        yield {"t": "resp", "d": tok}
+        hist2 = historico + [_como_mensagem(saida), {"role": "user", "content": "\n".join(respostas)}]
+        yield from _falar(llm, tok, hist2, gen_kw)
     yield {"t": "fim"}
+
+
+def responder(llm, tok, config, historico, **gen_kw):
+    """Eu rodo o MESMO fluxo da interface e só junto o resultado: o que o benchmark mede é o que a interface entrega."""
+    resposta, passos = "", []
+    for ev in responder_eventos(llm, tok, config, historico, **gen_kw):
+        if ev["t"] == "resp":
+            resposta += ev["d"]
+        elif ev["t"] == "tool":
+            passos.append((ev["nome"], ev["args"], ev["res"]))
+    return resposta.strip(), passos or None
+
+
+def responder_stream(llm, tok, config, historico, **gen_kw):
+    """Eu mostro o mesmo fluxo ao vivo no terminal: raciocínio em cinza, tool em amarelo e resposta em ciano."""
+    abre = {"think": "\033[2m💭 ", "resp": "\033[96mADA>\033[0m "}
+    resposta, passos, atual = "", [], None
+    for ev in responder_eventos(llm, tok, config, historico, **gen_kw):
+        if ev["t"] in abre:
+            if ev["t"] != atual:  # mudou de fase: fecho a cor anterior e abro a nova
+                print(("\033[0m\n" if atual else "") + abre[ev["t"]], end="", flush=True)
+                atual = ev["t"]
+            print(ev["d"], end="", flush=True)
+            if ev["t"] == "resp":
+                resposta += ev["d"]
+        elif ev["t"] == "tool":
+            print(("\033[0m\n" if atual else "") + f"\033[93m[{ev['nome']} → {ev['res']}]\033[0m")
+            passos.append((ev["nome"], ev["args"], ev["res"]))
+            atual = None
+    print("\033[0m")
+    return resposta.strip(), passos or None

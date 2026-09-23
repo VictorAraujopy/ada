@@ -1,18 +1,3 @@
-"""
-Base de conhecimento da ADA (RAG).
-
-Lê as fichas .md de 1_ada/conhecimento/base/ e monta o bloco de contexto que entra no
-system prompt do chat. Assim a ADA responde fato com base na FICHA, não na memória
-dos pesos (onde ela alucina).
-
-Por enquanto é RAG SIMPLES: injeta a base INTEIRA no contexto (a base é pequena).
-Quando crescer demais pra caber no contexto, é AQUI que entra a busca semântica
-(embeddings) pra pescar só os trechos relevantes de cada pergunta.
-
-Uso:
-    from conhecimento import carregar_conhecimento
-    bloco = carregar_conhecimento()   # texto pra concatenar no system prompt
-"""
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent / "base"
@@ -25,11 +10,11 @@ def carregar_conhecimento():
         return ""
     corpo = "\n\n---\n\n".join(f.read_text(encoding="utf-8").strip() for f in fichas)
     return (
-        "## BASE DE CONHECIMENTO (fatos confiáveis)\n"
-        "Use os fatos abaixo quando forem relevantes. NÃO invente fora disto: se algo "
-        "não está aqui e você não tem certeza, diga que não sabe. A regra vale nos dois "
-        "sentidos: o que ESTÁ escrito aqui (ou em qualquer parte deste sistema) você SABE "
-        "com certeza — usar não é inventar, e negar conhecer é errado.\n\n"
+        "## KNOWLEDGE BASE (reliable facts)\n"
+        "Use the facts below when they're relevant. Do NOT make things up beyond this: if something "
+        "isn't here and you're not sure, say you don't know. The rule works both ways: what IS "
+        "written here (or anywhere in this system) you KNOW for sure — using it isn't making "
+        "things up, and denying you know it is wrong.\n\n"
         + corpo
     )
 

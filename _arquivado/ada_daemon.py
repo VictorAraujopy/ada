@@ -1,18 +1,3 @@
-"""
-Daemon da ADA — residente, controlado pelo Hammerspoon.
-  Ctrl+Alt+E liga · Ctrl+Alt+T desliga · segurar o botão de cima = falar.
-
-Fluxo ao usar o botão:
-  /start -> começa a gravar o microfone
-  /stop  -> para, transcreve (PT), pensa (9B em PT), traduz e FALA (EN)
-  /clear -> limpa o contexto da conversa
-
-O cérebro e a voz vêm de 4_voz/chat_voz.py. O MLX EXIGE a thread principal, então:
-  - o servidor HTTP roda numa thread só pra receber o sinal e ENFILEIRAR;
-  - a thread principal (loop) tira da fila e processa (Whisper -> 9B -> voz).
-
-    .venv/bin/python 6_assistente/ada.py
-"""
 import queue
 import subprocess
 import sys

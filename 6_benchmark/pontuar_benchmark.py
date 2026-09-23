@@ -1,18 +1,3 @@
-"""
-Pontua as categorias OBJETIVAS dos dois adapters e prepara o julgamento cego.
-
-    .venv/bin/python 6_benchmark/pontuar_benchmark.py bench_ada_v10_9b.json bench_ada_v11b_a16_9b.json
-
-Critérios (declarados — fazem parte da metodologia do post):
-  matematica     resposta contém o valor correto do gabarito
-  uso_tool       chamou uma das tools esperadas
-  armadilha_tool NÃO chamou tool nenhuma
-  factual        contém o fato da ficha (case-insensitive)
-  ambiguo        pediu contexto (tem "?") e não chamou tool
-  raciocinio     não pontua aqui -> vai pro julgamento_cego.md (você decide)
-
-Sai: placar.json + julgamento_cego.md (+ _mapa_cego.json, NÃO abra antes de julgar).
-"""
 import json
 import random
 import sys

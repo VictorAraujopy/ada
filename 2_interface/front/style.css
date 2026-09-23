@@ -1,22 +1,22 @@
-/* ADA — noir de HQ: papel queimado, sangue, tipografia editorial (Didot, nativa
-   do macOS — nada baixado, o projeto continua 100% offline) e cortes diagonais
-   estilo Resident Evil nos elementos. */
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
   --bg: #0a0908; --card: #14120f; --card2: #181512; --line: #2a2724; --line2: #383330;
-  --ink: #ece7de; --dim: #847d72; --apagado: #564f48;
-  --blood: #b3171d; --blood2: #7c1014; --bloodink: #e0a3a3; --glow: rgba(179,23,29,.32);
+  --ink: #ece7de; --ink2: #cfc7bb; --dim: #847d72; --apagado: #564f48;
+  --blood: #b3171d; --blood-hot: #e0212a; --blood2: #7c1014; --bloodink: #e0a3a3;
+  --glow: rgba(179,23,29,.32); --glow-hot: rgba(224,33,42,.55);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --display: "Didot", "Bodoni 72", Georgia, serif;
   --mono: "SF Mono", ui-monospace, Menlo, monospace;
   /* corte diagonal (canto chanfrado) que assina o design inteiro */
   --corte: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
-  --faixa: max(22px, calc((100vw - 248px - 860px) / 2));
+  --corte-g: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+  /* margem fluida do conteúdo; encolhe pra 22px quando o painel abre */
+  --faixa: max(22px, calc((100vw - 248px - 880px) / 2));
 }
 html, body { height: 100%; }
 body {
   background: var(--bg); color: var(--ink); font-family: var(--font);
-  -webkit-font-smoothing: antialiased;
+  -webkit-font-smoothing: antialiased; overflow: hidden;
 }
 ::selection { background: var(--blood2); color: #fff; }
 
@@ -28,7 +28,7 @@ body::before {
 body::after {
   content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(60% 38% at 50% 104%, rgba(179,23,29,.07), transparent 70%),
+    radial-gradient(60% 38% at 50% 104%, rgba(179,23,29,.08), transparent 70%),
     radial-gradient(125% 95% at 50% -5%, transparent 52%, rgba(0,0,0,.62) 100%);
 }
 
@@ -90,11 +90,15 @@ body::after {
 
 /* ============ HEADER ============ */
 header {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: nowrap; gap: 14px;
   padding: 15px var(--faixa); border-bottom: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(20,11,12,.35), transparent);
 }
-.brand { display: flex; align-items: center; gap: 14px; }
+.brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+/* com o painel aberto, o header desafoga: nome menor, some o supérfluo */
+.app.painel-aberto .name { font-size: 19px; letter-spacing: 5px; }
+.app.painel-aberto .sub { display: none; }
+.app.painel-aberto #exportar { display: none; }
 #menu { display: none; background: none; border: none; color: var(--dim);
         font-size: 18px; cursor: pointer; padding: 2px 6px; }
 .logo {
@@ -133,78 +137,30 @@ header {
 #exportar:hover:not(:disabled) { color: var(--ink); border-color: var(--blood); }
 #exportar:disabled { opacity: .3; cursor: default; }
 
-/* ============ CONVERSA ============ */
-main { flex: 1; overflow-y: auto; padding: 30px var(--faixa); display: flex; flex-direction: column; gap: 24px; }
+/* ============ CONVERSA (container) ============ */
+main { flex: 1; overflow-y: auto; padding: 30px var(--faixa) 40px;
+       display: flex; flex-direction: column; gap: 26px; }
 main::-webkit-scrollbar { width: 8px; }
 main::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
 
-/* tela vazia */
-.empty { margin: auto; text-align: center; max-width: 480px; }
-.empty-ada {
-  font-family: var(--display); font-weight: 700; font-size: 96px; line-height: 1;
-  letter-spacing: 26px; margin-right: -26px; color: var(--ink);
-  text-shadow: 0 0 40px rgba(179,23,29,.25);
-}
-.empty-risco {
-  width: 150px; height: 3px; margin: 18px auto 20px; transform: rotate(-1.6deg);
-  background: linear-gradient(90deg, transparent, var(--blood) 18%, var(--blood) 82%, transparent);
-  box-shadow: 0 0 12px var(--glow);
-}
-.empty-sub { font-size: 11px; color: var(--dim); letter-spacing: 2.6px; text-transform: uppercase; }
-.chips { display: flex; gap: 9px; flex-wrap: wrap; justify-content: center; margin-top: 30px; }
-.chips button {
-  background: var(--card); border: 1px solid var(--line); color: var(--dim); clip-path: var(--corte);
-  padding: 10px 15px; font-size: 13px; cursor: pointer; font-family: var(--font); transition: .16s;
-}
-.chips button:hover { color: var(--ink); border-color: var(--blood);
-                      box-shadow: inset 0 0 18px rgba(179,23,29,.12); }
-.creed { margin-top: 40px; font-size: 9px; letter-spacing: 5px; text-transform: uppercase; color: #3a302e; }
-
-.msg { display: flex; gap: 13px; animation: rise .35s ease both; }
-@keyframes rise { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+.msg { display: flex; gap: 13px; animation: rise .35s ease; }
+@keyframes rise { from { transform: translateY(9px); } to { transform: none; } }
 .msg.user { justify-content: flex-end; }
 .bubble {
   background: linear-gradient(180deg, #871318, var(--blood2)); color: var(--ink);
   border: 1px solid var(--blood); clip-path: var(--corte);
-  padding: 12px 16px; max-width: 78%; font-size: 15px; line-height: 1.55; white-space: pre-wrap;
+  padding: 12px 16px; max-width: 70%; font-size: 15px; line-height: 1.55; white-space: pre-wrap;
   box-shadow: inset 0 0 20px rgba(0,0,0,.3);
 }
 .avatar {
-  position: relative; width: 34px; height: 34px; flex-shrink: 0; margin-top: 2px;
+  position: relative; width: 36px; height: 36px; flex-shrink: 0; margin-top: 2px;
   display: grid; place-items: center; background: #0a0908;
   border: 1px solid var(--blood); clip-path: var(--corte);
-  font-family: var(--display); font-weight: 700; font-size: 16px;
+  font-family: var(--display); font-weight: 700; font-size: 17px;
 }
 .msg.viva .avatar { box-shadow: inset 0 0 14px var(--glow); animation: respira 1.6s ease-in-out infinite; }
 @keyframes respira { 50% { box-shadow: inset 0 0 3px var(--glow); } }
-.body { max-width: 82%; min-width: 0; }
-
-.thinking { border-left: 2px solid var(--blood); margin-bottom: 12px; }
-.thinking-head {
-  font-size: 10.5px; color: var(--dim); cursor: pointer; user-select: none; letter-spacing: 1.6px;
-  display: flex; align-items: center; gap: 7px; padding: 1px 0 1px 12px; text-transform: uppercase;
-  font-family: var(--mono);
-}
-.thinking.live .thinking-head { animation: breathe 1.6s ease-in-out infinite; }
-@keyframes breathe { 50% { opacity: .4; } }
-.thinking-body {
-  font-size: 13.5px; color: #9a948b; line-height: 1.58; font-style: italic;
-  padding: 8px 0 4px 12px; white-space: pre-wrap; overflow: hidden;
-  max-height: 600px; opacity: 1; transition: max-height .45s ease, opacity .35s ease, padding .45s;
-}
-.thinking.collapsed .thinking-body { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
-.thinking.collapsed .thinking-head .caret { transform: rotate(-90deg); }
-.caret { font-size: 9px; transition: transform .3s; color: var(--blood); }
-
-.tools { display: flex; flex-direction: column; gap: 7px; margin-bottom: 12px; }
-.tool {
-  display: inline-flex; align-items: center; gap: 10px; align-self: flex-start;
-  background: var(--card); border: 1px solid var(--line); border-left: 2px solid var(--blood);
-  clip-path: var(--corte); padding: 8px 14px; font-size: 13px; animation: rise .3s both;
-}
-.tool .nm { color: var(--bloodink); font-family: var(--mono); font-size: 12.5px; }
-.tool .rs { color: var(--dim); }
-.tool .ok { color: var(--ink); margin-left: 2px; }
+.body { max-width: 82%; min-width: 0; flex: 1; }
 
 .answer { font-size: 15.5px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: break-word; }
 .answer code {
@@ -221,54 +177,5 @@ main::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
           background: var(--blood); animation: blink 1s steps(2) infinite;
           box-shadow: 0 0 8px var(--glow); }
 @keyframes blink { 50% { opacity: 0; } }
-
-.metricas { margin-top: 9px; font-size: 10px; color: var(--apagado);
+.metricas { margin-top: 11px; font-size: 10px; color: var(--apagado);
             letter-spacing: 1px; text-transform: uppercase; font-family: var(--mono); }
-.fila-aviso { font-size: 12px; color: var(--dim); font-style: italic; padding: 2px 0; }
-.erro {
-  align-self: flex-start; background: #140b0c; border: 1px solid var(--blood); clip-path: var(--corte);
-  padding: 10px 15px; font-size: 13px; color: var(--bloodink);
-  font-family: var(--mono); animation: rise .3s both;
-}
-
-/* ============ INPUT ============ */
-footer { padding: 14px var(--faixa) 12px; border-top: 1px solid var(--line);
-         background: linear-gradient(0deg, rgba(20,11,12,.3), transparent); }
-#form { display: flex; gap: 10px; align-items: center; transition: .2s;
-        background: var(--card); border: 1px solid var(--line); clip-path: var(--corte);
-        padding: 8px 8px 8px 17px; }
-#form:focus-within { border-color: var(--blood); box-shadow: inset 0 0 26px rgba(179,23,29,.08); }
-#form.off { opacity: .55; }
-#msg { flex: 1; background: none; border: none; outline: none; color: var(--ink);
-       font-size: 15px; font-family: var(--font); caret-color: var(--blood); }
-#msg::placeholder { color: var(--apagado); }
-#form button {
-  width: 40px; height: 40px; border: none; cursor: pointer; flex-shrink: 0; clip-path: var(--corte);
-  background: linear-gradient(180deg, #c91920, var(--blood2)); color: #fff;
-  font-size: 18px; display: grid; place-items: center; transition: .15s;
-}
-#form button:hover:not(:disabled) { filter: brightness(1.18); }
-#form button:disabled { opacity: .35; cursor: default; }
-.rodape-nota { margin-top: 9px; text-align: center; font-size: 9px; color: #3a302e;
-               letter-spacing: 2.4px; text-transform: uppercase; }
-
-/* ============ RESPONSIVO ============ */
-@media (max-width: 720px) {
-  #menu { display: block; }
-  #sidebar { position: absolute; z-index: 5; height: 100%; transform: translateX(-100%);
-             transition: transform .25s ease; background: #0a0908; }
-  .app.menu-aberto #sidebar { transform: none; box-shadow: 12px 0 30px rgba(0,0,0,.55); }
-  .empty-ada { font-size: 64px; letter-spacing: 16px; margin-right: -16px; }
-  .sub { display: none; }
-}
-
-/* feedback por resposta — discreto, na paleta da casa */
-.votos { margin-top: 8px; display: flex; gap: 6px; }
-.voto {
-  background: transparent; border: 1px solid var(--line); clip-path: var(--corte);
-  color: var(--dim); font-family: var(--mono); font-size: 11px;
-  padding: 3px 10px; cursor: pointer; opacity: .5; transition: .15s;
-}
-.voto:hover { opacity: 1; color: var(--ink); border-color: var(--blood2); }
-.voto.ativo { opacity: 1; color: var(--bloodink); border-color: var(--blood);
-              box-shadow: inset 0 0 10px rgba(179,23,29,.25); }

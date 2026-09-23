@@ -1,0 +1,40 @@
+/* ADA — tela vazia (nova conversa) + barra de input + responsivo da sidebar */
+
+/* tela vazia */
+.empty { margin: auto; text-align: center; max-width: 560px; padding: 20px; }
+.empty-ada { font-family: var(--display); font-weight: 700; font-size: 96px; line-height: 1;
+  letter-spacing: 26px; margin-right: -26px; color: var(--ink); text-shadow: 0 0 40px rgba(179,23,29,.25); }
+.empty-risco { width: 150px; height: 3px; margin: 18px auto 20px; transform: rotate(-1.6deg);
+  background: linear-gradient(90deg, transparent, var(--blood) 18%, var(--blood) 82%, transparent); box-shadow: 0 0 12px var(--glow); }
+.empty-sub { font-size: 11px; color: var(--dim); letter-spacing: 2.6px; text-transform: uppercase; }
+.chips { display: flex; gap: 9px; flex-wrap: wrap; justify-content: center; margin-top: 30px; }
+.chips button { background: var(--card); border: 1px solid var(--line); color: var(--dim); clip-path: var(--corte);
+  padding: 10px 15px; font-size: 13px; cursor: pointer; font-family: var(--font); transition: .16s; }
+.chips button:hover { color: var(--ink); border-color: var(--blood); box-shadow: inset 0 0 18px rgba(179,23,29,.12); }
+.creed { margin-top: 40px; font-size: 9px; letter-spacing: 5px; text-transform: uppercase; color: #3a302e; }
+
+/* input */
+footer { padding: 14px var(--faixa) 12px; border-top: 1px solid var(--line);
+  background: linear-gradient(0deg, rgba(20,11,12,.3), transparent); }
+#form { display: flex; gap: 10px; align-items: center; transition: .2s;
+  background: var(--card); border: 1px solid var(--line); clip-path: var(--corte); padding: 8px 8px 8px 17px; }
+#form:focus-within { border-color: var(--blood); box-shadow: inset 0 0 26px rgba(179,23,29,.08); }
+#form.off { opacity: .55; }
+#msg { flex: 1; background: none; border: none; outline: none; color: var(--ink); font-size: 15px; font-family: var(--font); caret-color: var(--blood); }
+#msg::placeholder { color: var(--apagado); }
+#msg:disabled { opacity: .5; }
+#form button { width: 40px; height: 40px; border: none; cursor: pointer; flex-shrink: 0; clip-path: var(--corte);
+  background: linear-gradient(180deg, #c91920, var(--blood2)); color: #fff; font-size: 18px; display: grid; place-items: center; transition: .15s; }
+#form button:hover:not(:disabled) { filter: brightness(1.18); }
+#form button:disabled { opacity: .35; cursor: default; }
+.rodape-nota { margin-top: 9px; text-align: center; font-size: 9px; color: #3a302e; letter-spacing: 2.4px; text-transform: uppercase; }
+
+/* responsivo: a sidebar vira drawer em telas estreitas */
+@media (max-width: 760px) {
+  #menu { display: block; }
+  #sidebar { position: absolute; z-index: 5; height: 100%; transform: translateX(-100%); transition: transform .25s ease; background: #0a0908; }
+  .app.menu-aberto #sidebar { transform: none; box-shadow: 12px 0 30px rgba(0,0,0,.55); }
+  .empty-ada { font-size: 60px; letter-spacing: 14px; margin-right: -14px; }
+  .sub { display: none; }
+  .body { max-width: 100%; }
+}
