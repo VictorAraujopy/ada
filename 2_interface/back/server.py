@@ -147,14 +147,6 @@ async def renomear_conversa(cid: str, req: Request):
     return {"ok": True, "titulo": novo}
 
 
-@app.post("/avaliar")
-async def avaliar(req: Request):
-    """Feedback 👍/👎 numa fala da ADA — a matéria-prima do treino por preferência."""
-    corpo = await req.json()
-    ok = armazem.avaliar(corpo.get("conversa", ""), corpo.get("voto"), corpo.get("n"))
-    return {"ok": ok}
-
-
 @app.delete("/conversas/{cid}")
 def apagar_conversa(cid: str):
     armazem.apagar(cid)

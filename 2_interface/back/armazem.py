@@ -76,28 +76,6 @@ def renomear(cid, novo):
     return novo
 
 
-def avaliar(cid, voto, n=None):
-    """Grava o feedback (voto: 'up' | 'down' | None limpa) numa fala da ADA.
-    Sem n, vale a última fala assistant da conversa (o caso do chat ao vivo)."""
-    if n is None:
-        r = _sql("SELECT n FROM mensagens WHERE conversa=? AND role='assistant' "
-                 "ORDER BY n DESC LIMIT 1", (cid,))
-        if not r:
-            return False
-        n = r[0]["n"]
-    r = _sql("SELECT meta FROM mensagens WHERE n=? AND conversa=?", (n, cid))
-    if not r:
-        return False
-    meta = json.loads(r[0]["meta"]) if r[0]["meta"] else {}
-    if voto:
-        meta["voto"] = voto
-    else:
-        meta.pop("voto", None)
-    _sql("UPDATE mensagens SET meta=? WHERE n=?",
-         (json.dumps(meta, ensure_ascii=False), n))
-    return True
-
-
 def apagar(cid):
     _sql("DELETE FROM mensagens WHERE conversa=?", (cid,))
     _sql("DELETE FROM conversas WHERE id=?", (cid,))

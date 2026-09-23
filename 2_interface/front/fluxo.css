@@ -23,10 +23,3 @@
 /* erro */
 .erro { align-self: flex-start; background: #140b0c; border: 1px solid var(--blood); clip-path: var(--corte);
   padding: 10px 15px; font-size: 13px; color: var(--bloodink); font-family: var(--mono); animation: rise .3s ease; }
-
-/* votos 👍/👎 — discreto, na paleta da casa */
-.votos { margin-top: 12px; display: flex; gap: 6px; }
-.voto { background: transparent; border: 1px solid var(--line); clip-path: var(--corte); color: var(--dim);
-  font-family: var(--mono); font-size: 11px; padding: 3px 10px; cursor: pointer; opacity: .5; transition: .15s; }
-.voto:hover { opacity: 1; color: var(--ink); border-color: var(--blood2); }
-.voto.ativo { opacity: 1; color: var(--bloodink); border-color: var(--blood); box-shadow: inset 0 0 10px rgba(179,23,29,.25); }

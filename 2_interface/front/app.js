@@ -165,25 +165,6 @@ function addAda() {
   return { m, body, think: drv, answer, t0: performance.now() };
 }
 
-function addVotos(container, n, atual) {
-  const linha = el('votos');
-  for (const [voto, simbolo] of [["up", "✓ boa"], ["down", "✕ ruim"]]) {
-    const b = document.createElement('button');
-    b.className = 'voto' + (atual === voto ? ' ativo' : '');
-    b.textContent = simbolo;
-    b.title = voto === 'up' ? 'resposta boa (vira exemplo de treino)' : 'resposta ruim (vira correção no treino)';
-    b.onclick = async () => {
-      const novo = b.classList.contains('ativo') ? null : voto;   // clicar de novo desfaz
-      await fetch('/avaliar', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversa, n, voto: novo }) });
-      linha.querySelectorAll('.voto').forEach(x => x.classList.remove('ativo'));
-      if (novo) b.classList.add('ativo');
-    };
-    linha.appendChild(b);
-  }
-  container.appendChild(linha);
-}
-
 function addErro(txt) {
   chat.appendChild(el('erro', txt));
   scroll();
@@ -216,7 +197,6 @@ async function abrir(id) {
       stats: { rac: pensouS, resp: respondeuS, tok, passos: tools.length },
       recusa: !tools.length && REGEX_RECUSA.test(msg.content),
     };
-    addVotos(g.body, msg.n ?? null, meta.voto ?? null);
   }
   marcarAtiva();
   scroll();
@@ -352,7 +332,6 @@ async function enviar(txt) {
         stats: { rac: pensouS ?? 0, resp: respondeuS, tok, passos: tools.length },
         recusa,
       };
-      addVotos(g.body, null, null);
     }
     g.m.querySelector('.fila-aviso')?.remove();
     carregarLista();   // atualiza "agora" / ordem na sidebar
