@@ -39,7 +39,7 @@ PERSONA_VICTOR = "Current user: Victor, your creator. Be direct and objective, d
 # Eu mantenho a persona do visitante genérica no repo e deixo os dados reais em personas_local.py.
 PERSONA_VISITANTE = ("Current user: visitor (not Victor, not your creator). "
                      "Be kind and objective, don't make things up.")
-PERSONA_CONVIDADO = PERSONA_VISITANTE  # sem o personas_local, o convidado é um visitante qualquer
+PERSONA_CONVIDADO = PERSONA_VISITANTE
 try:
     from personas_local import PERSONA_CONVIDADO  # sobrescreve com a pessoa real, se existir
 except ImportError:

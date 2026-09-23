@@ -24,6 +24,13 @@ load_dotenv(RAIZ / ".env")  # não sobrescreve variável que já veio do termina
 
 FAKE = os.environ.get("ADA_FAKE") == "1"
 
+# ADA_HOST: 127.0.0.1 (so esta maquina) | IP do Tailscale (so a tailnet — modo convidado)
+# NUNCA use 0.0.0.0 sem firewall: exporia a ADA pra rede local inteira.
+# `or`: ADA_HOST vazio (ex.: $(tailscale ip) que falhou) NUNCA pode virar 0.0.0.0
+HOST = os.environ.get("ADA_HOST") or "127.0.0.1"
+PORTA = int(os.environ.get("ADA_PORT", 8000))
+URL = f"http://{HOST}:{PORTA}"
+
 # Config, system prompt e params de geração vivem TODOS no núcleo (1_ada/cerebro.py).
 # Aqui o backend só importa e repassa. No modo FAKE o núcleo nem é carregado (sem o modelo), então
 # o SYSTEM fica vazio (os eventos de mentira ignoram); o worker o preenche ao carregar de verdade.
@@ -97,7 +104,7 @@ def worker():
             return cerebro.responder_eventos(model, processor, config, historico, **cerebro.GEN)
 
     pronta.set()
-    print("[interface] PRONTA  ->  http://localhost:8000")
+    print(f"[interface] PRONTA  ->  {URL}")
 
     while True:
         job = jobs.get()
@@ -225,10 +232,5 @@ async def chat(req: Request):
 
 
 if __name__ == "__main__":
-    # ADA_HOST: 127.0.0.1 (so esta maquina) | IP do Tailscale (so a tailnet — modo convidado)
-    # NUNCA use 0.0.0.0 sem firewall: exporia a ADA pra rede local inteira.
-    # `or`: ADA_HOST vazio (ex.: $(tailscale ip) que falhou) NUNCA pode virar 0.0.0.0
-    host = os.environ.get("ADA_HOST") or "127.0.0.1"
-    print(f"[interface] escutando em http://{host}:{os.environ.get('ADA_PORT', 8000)}")
-    uvicorn.run(app, host=host,
-                port=int(os.environ.get("ADA_PORT", 8000)), log_level="warning")
+    print(f"[interface] escutando em {URL}")
+    uvicorn.run(app, host=HOST, port=PORTA, log_level="warning")

@@ -47,8 +47,16 @@ def listar(dono="victor"):
     return [dict(r) for r in rs]
 
 
+def listar_todas():
+    """Todas as conversas, com dono — pro log no terminal."""
+    rs = _sql("""SELECT c.id, c.dono, c.titulo, c.atualizada,
+                 (SELECT COUNT(*) FROM mensagens m WHERE m.conversa = c.id) AS n
+                 FROM conversas c ORDER BY c.atualizada DESC""")
+    return [dict(r) for r in rs]
+
+
 def existe(cid, dono):
-    """A conversa existe E é desse dono — pra qualquer outra pessoa, ela não existe."""
+    """A conversa existe e é desse dono."""
     return bool(_sql("SELECT 1 FROM conversas WHERE id=? AND dono=?", (cid, dono)))
 
 
@@ -80,3 +88,21 @@ def renomear(cid, novo):
 def apagar(cid):
     _sql("DELETE FROM mensagens WHERE conversa=?", (cid,))
     _sql("DELETE FROM conversas WHERE id=?", (cid,))
+
+
+if __name__ == "__main__":
+    # log no terminal: sem argumento lista todas; com o id, mostra a conversa inteira
+    import sys
+
+    if len(sys.argv) < 2:
+        for c in listar_todas():
+            quando = time.strftime("%d/%m %H:%M", time.localtime(c["atualizada"]))
+            print(f"{c['dono']:<10} {c['id']}  {quando}  {c['n']:>3} msgs  {c['titulo']}")
+    elif not titulo(sys.argv[1]):
+        sys.exit("conversa não existe")
+    else:
+        print(f"# {titulo(sys.argv[1])}\n")
+        for m in mensagens(sys.argv[1]):
+            for t in (m["meta"] or {}).get("tools", []):
+                print(f"  🔧 {t['nome']} → {t['res']}")
+            print(f"{'ADA' if m['role'] == 'assistant' else 'user'}: {m['content']}\n")
