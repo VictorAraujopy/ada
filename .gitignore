@@ -5,21 +5,12 @@ __pycache__/
 .idea/
 .claude/
 .DS_Store
-
+old/
 # === Pesos dos adapters ===
-# Só os adapters publicados entram (v10 baseline + v11b atual, ~83M cada, bf16).
+# Nenhum peso entra no git: o adapter do 27B (~450MB) passa do limite de 100MB do GitHub.
+# Os adapters 9B antigos (v9/v10/v11b) continuam acessíveis pelo histórico.
 *.safetensors
-!_modelo/ada_v10_9b/adapters.safetensors
-!_modelo/ada_v11b_a16_9b/adapters.safetensors
-# Adapters GGUF do 27B (~450MB, acima do limite do GitHub) — ficam só locais
 *.gguf
-# Versões antigas fora do GitHub
-_modelo/ada_v9_9b/
-_modelo/ada_v11_a16_9b/
-
-# Voz pessoal (referência de clonagem) e áudios temporários
-_arquivado/4_voz/voz_ada.wav
-_arquivado/4_voz/_fala_*.wav
 
 # Runtime / temporários
 *.log
@@ -37,20 +28,13 @@ docs/
 **/README.md
 !/README.md
 
-# Voz/daemon descontinuados (codigo arquivado fica no repo; pesados pro Mac atual)
-
-
 # Treino + laboratório = proprietários (o "molho" da ADA — não entra na vitrine)
 4_treino/
 5_lab/
 
-# Benchmark: o harness (scripts + perguntas) é público; os RESULTADOS são pessoais
-6_benchmark/resultados/
+# Benchmark inteiro fica local (itens com pessoas reais, respostas, avaliações); o resultado mais recente vai no README
+6_benchmark/
 _modelo/*_fp32/
-
-# Estratégia de dataset = proprietária (planos e checkpoints do build, na raiz)
-/PLANO_DATASET_V12.md
-/CONTINUAR_DATASET.md
 
 # Personas com dados pessoais reais (privacidade de terceiros — uso local)
 1_ada/personas_local.py

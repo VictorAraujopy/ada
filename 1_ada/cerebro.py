@@ -45,13 +45,9 @@ except ImportError:
     pass
 
 
-def montar_system(voz=False, persona=PERSONA_VICTOR):
-    """Eu monto o system prompt e, se for voz, acrescento a instrução de falar de forma direta."""
+def montar_system(persona=PERSONA_VICTOR):
+    """Eu monto o system prompt: a persona de quem está falando + a base de conhecimento."""
     partes = [persona]
-    if voz:
-        partes.append("You answer by voice, so get straight to the point. If the request calls for a "
-                       "tool (time, status, app, music...), use the tool — you don't have a clock "
-                       "or sensors of your own.")
     if os.environ.get("ADA_BASE", "on") != "off":
         base = carregar_conhecimento()
         if base:
@@ -61,7 +57,6 @@ def montar_system(voz=False, persona=PERSONA_VICTOR):
 
 SYSTEM = montar_system()              # texto / web (Victor)
 SYSTEM_CONVIDADO = montar_system(persona=PERSONA_CONVIDADO)  # web quando quem chama não é o Victor
-SYSTEM_VOZ = montar_system(voz=True)  # voz
 
 
 def carregar():

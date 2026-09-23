@@ -3,16 +3,10 @@
 #   pip install -r requirements.txt
 
 # --- Cérebro + runtime (rodar a ADA no Mac) ---
-# (deps de VOZ comentadas — pipeline arquivado em _arquivado/; descomenta se voltar)
 llama-cpp-python==0.3.35 # roda o Qwen3.8-27B em GGUF 3 bits na GPU (compila com Metal)
 huggingface_hub==1.17.0  # baixa o GGUF e o tokenizer
 mlx-vlm==0.5.0          # ADA antiga (Qwen3.5-9B em MLX) — benchmarks de comparação
-# mlx-whisper==0.4.3      # transcrição de voz (o "ouvido")
-# mlx-audio==0.4.3        # síntese de voz / TTS (a "boca")
 transformers==5.9.0     # tokenizer e chat template do Qwen
-# argostranslate==1.11.0  # tradução PT->EN offline (pra voz sair sem sotaque)
-# sounddevice==0.5.5      # captura do microfone
-scipy==1.17.1           # escrita dos WAVs
 numpy==2.4.6
 
 # --- Interface web (2_interface — só pra demo) ---
