@@ -13,3 +13,4 @@ ddgs==9.16.0            # pesquisar_web: busca no DuckDuckGo sem chave de API
 # --- Interface web (2_interface — só pra demo) ---
 fastapi==0.136.3
 uvicorn==0.48.0
+python-dotenv==1.2.3    # lê o .env local (IPs de quem é quem)

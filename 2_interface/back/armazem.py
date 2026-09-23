@@ -47,8 +47,9 @@ def listar(dono="victor"):
     return [dict(r) for r in rs]
 
 
-def existe(cid):
-    return bool(_sql("SELECT 1 FROM conversas WHERE id=?", (cid,)))
+def existe(cid, dono):
+    """A conversa existe E é desse dono — pra qualquer outra pessoa, ela não existe."""
+    return bool(_sql("SELECT 1 FROM conversas WHERE id=? AND dono=?", (cid, dono)))
 
 
 def titulo(cid):

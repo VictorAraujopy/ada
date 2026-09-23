@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -19,6 +20,7 @@ RAIZ = Path(__file__).resolve().parent.parent.parent
 AQUI = Path(__file__).resolve().parent
 FRONT = AQUI.parent / "front"
 sys.path.insert(0, str(RAIZ / "1_ada"))
+load_dotenv(RAIZ / ".env")  # não sobrescreve variável que já veio do terminal
 
 FAKE = os.environ.get("ADA_FAKE") == "1"
 
@@ -27,17 +29,26 @@ FAKE = os.environ.get("ADA_FAKE") == "1"
 # o SYSTEM fica vazio (os eventos de mentira ignoram); o worker o preenche ao carregar de verdade.
 # só pro /info — mesmo nome que o cerebro.py usa (ADA_ADAPTER="" roda o 27B cru)
 ADAPTER = os.environ.get("ADA_ADAPTER", "ada_v12_1_en_a16_27b") or "qwen3.8_27b_cru"
-SYSTEMS = {"victor": "", "convidado": ""}  # preenchidos pelo worker quando o modelo carrega
+SYSTEMS = {"victor": "", "convidado": "", "visitante": ""}  # preenchidos pelo worker quando o modelo carrega
 
-# Identidade por origem: requisição da máquina do Victor = victor; resto = convidado.
+
+def _ips(var):
+    return {ip.strip() for ip in os.environ.get(var, "").split(",") if ip.strip()}
+
+
+# Identidade por origem: IPs do Victor = victor; IPs do convidado (.env) = convidado; resto = visitante.
 IPS_VICTOR = ({"127.0.0.1", "::1"}
               # o IP que o PRÓPRIO servidor escuta: requisição da máquina pra ela mesma = Victor
               | ({os.environ["ADA_HOST"]} if os.environ.get("ADA_HOST") else set())
-              | {ip.strip() for ip in os.environ.get("ADA_IPS_VICTOR", "").split(",") if ip.strip()})
+              | _ips("ADA_IPS_VICTOR"))
+IPS_CONVIDADO = _ips("ADA_IPS_CONVIDADO") - IPS_VICTOR
 
 
 def usuario_de(req: Request) -> str:
-    return "victor" if (req.client and req.client.host in IPS_VICTOR) else "convidado"
+    ip = req.client.host if req.client else ""
+    if ip in IPS_VICTOR:
+        return "victor"
+    return "convidado" if ip in IPS_CONVIDADO else "visitante"
 
 
 @dataclass
@@ -77,9 +88,8 @@ def worker():
         import cerebro  # núcleo da ADA (só carrega o modelo fora do modo FAKE)
 
         SYSTEMS["victor"] = cerebro.SYSTEM
-        # SYSTEM_CONVIDADO é definido no cerebro.py (persona do convidado);
-        # enquanto não existir, ela recebe o system padrão (sem a linha do criador? não — fallback igual)
-        SYSTEMS["convidado"] = getattr(cerebro, "SYSTEM_CONVIDADO", cerebro.SYSTEM)
+        SYSTEMS["convidado"] = cerebro.SYSTEM_CONVIDADO
+        SYSTEMS["visitante"] = cerebro.SYSTEM_VISITANTE
         print(f"[interface] carregando a ADA ({Path(cerebro.ADAPTER).name})... (uns 30-60s)")
         model, processor, config = cerebro.carregar()
 
@@ -102,7 +112,7 @@ def worker():
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory=FRONT), name="static")
-print(f"[interface] IPs tratados como Victor: {sorted(IPS_VICTOR)}")
+print(f"[interface] victor: {sorted(IPS_VICTOR)} | convidado: {sorted(IPS_CONVIDADO)} | resto = visitante")
 threading.Thread(target=worker, daemon=True).start()
 
 
@@ -131,15 +141,15 @@ async def criar_conversa(req: Request):
 
 
 @app.get("/conversas/{cid}")
-def abrir_conversa(cid: str):
-    if not armazem.existe(cid):
+def abrir_conversa(cid: str, req: Request):
+    if not armazem.existe(cid, usuario_de(req)):
         return JSONResponse({"erro": "conversa não existe"}, status_code=404)
     return {"id": cid, "titulo": armazem.titulo(cid), "mensagens": armazem.mensagens(cid)}
 
 
 @app.patch("/conversas/{cid}")
 async def renomear_conversa(cid: str, req: Request):
-    if not armazem.existe(cid):
+    if not armazem.existe(cid, usuario_de(req)):
         return JSONResponse({"erro": "conversa não existe"}, status_code=404)
     novo = armazem.renomear(cid, (await req.json()).get("titulo", ""))
     if not novo:
@@ -148,15 +158,17 @@ async def renomear_conversa(cid: str, req: Request):
 
 
 @app.delete("/conversas/{cid}")
-def apagar_conversa(cid: str):
+def apagar_conversa(cid: str, req: Request):
+    if not armazem.existe(cid, usuario_de(req)):
+        return JSONResponse({"erro": "conversa não existe"}, status_code=404)
     armazem.apagar(cid)
     return {"ok": True}
 
 
 @app.get("/conversas/{cid}/export")
-def exportar(cid: str):
+def exportar(cid: str, req: Request):
     """Baixa a conversa em markdown (pra post, demo, arquivo)."""
-    if not armazem.existe(cid):
+    if not armazem.existe(cid, usuario_de(req)):
         return JSONResponse({"erro": "conversa não existe"}, status_code=404)
     linhas = [f"# ADA — {armazem.titulo(cid)}", ""]
     for m in armazem.mensagens(cid):
@@ -175,7 +187,7 @@ async def chat(req: Request):
     corpo = await req.json()
     cid = corpo.get("conversa", "")
     msg = (corpo.get("msg") or "").strip()
-    if not msg or not armazem.existe(cid):
+    if not msg or not armazem.existe(cid, usuario_de(req)):
         return JSONResponse({"erro": "faltou msg ou a conversa não existe"}, status_code=400)
     if not pronta.is_set():
         return JSONResponse({"erro": "a ADA ainda está carregando"}, status_code=503)

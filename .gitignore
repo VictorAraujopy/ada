@@ -38,6 +38,8 @@ _modelo/*_fp32/
 
 # Personas com dados pessoais reais (privacidade de terceiros — uso local)
 1_ada/personas_local.py
+# IPs de quem é quem na interface (Tailscale) — uso local
+.env
 
 # Andaime de pronome (gambiarra temporária até o v12 aprender; não é produto)
 1_ada/conhecimento/base/quem_e_quem.md

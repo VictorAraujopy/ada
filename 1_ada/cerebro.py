@@ -37,8 +37,9 @@ GEN = dict(max_tokens=4096, temperature=0.5, top_p=0.9, repeat_penalty=1.0, stop
 
 PERSONA_VICTOR = "Current user: Victor, your creator. Be direct and objective, don't make things up."
 # Eu mantenho a persona do visitante genérica no repo e deixo os dados reais em personas_local.py.
-PERSONA_CONVIDADO = ("Current user: visitor (not Victor, not your creator). "
+PERSONA_VISITANTE = ("Current user: visitor (not Victor, not your creator). "
                      "Be kind and objective, don't make things up.")
+PERSONA_CONVIDADO = PERSONA_VISITANTE  # sem o personas_local, o convidado é um visitante qualquer
 try:
     from personas_local import PERSONA_CONVIDADO  # sobrescreve com a pessoa real, se existir
 except ImportError:
@@ -56,7 +57,8 @@ def montar_system(persona=PERSONA_VICTOR):
 
 
 SYSTEM = montar_system()              # texto / web (Victor)
-SYSTEM_CONVIDADO = montar_system(persona=PERSONA_CONVIDADO)  # web quando quem chama não é o Victor
+SYSTEM_CONVIDADO = montar_system(persona=PERSONA_CONVIDADO)  # web: IP do convidado (.env)
+SYSTEM_VISITANTE = montar_system(persona=PERSONA_VISITANTE)  # web: qualquer outro IP
 
 
 def carregar():
