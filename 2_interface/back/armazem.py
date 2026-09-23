@@ -1,4 +1,19 @@
+"""
+Armazenamento das conversas da interface — SQLite local (2_interface/back/conversas.db).
 
+Duas tabelas:
+  conversas — id, título (1ª mensagem encurtada), criada/atualizada, dono
+  mensagens — role + content (o que vai pro modelo) e um meta JSON só do
+              assistant (tools usadas, tempos, raciocínio) pra UI restaurar
+              a tela fielmente depois de um F5 ou reinício.
+
+Uma conexão única + lock: os endpoints rodam em threads do pool do Starlette,
+e o SQLite não gosta de conexão compartilhada sem proteção.
+
+Rodado direto, vira log no terminal (conversas de todos os donos):
+    .venv/bin/python 2_interface/back/armazem.py          # lista
+    .venv/bin/python 2_interface/back/armazem.py <id>     # uma conversa inteira
+"""
 import json
 import sqlite3
 import threading

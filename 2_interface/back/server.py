@@ -1,4 +1,25 @@
+"""
+Interface web da ADA — backend.
 
+Arquitetura: o modelo tem UMA thread dona (o worker), que tira os pedidos da
+fila `entrada` um por vez. Cada POST /chat vira um Job com a SUA fila de saída —
+o endpoint streama os eventos dela via SSE, e conversas não se misturam.
+
+As conversas vivem no SQLite (armazem.py): sobrevivem a F5 e a reinício do
+servidor. O histórico que vai pro modelo é remontado do banco a cada turno.
+
+Identidade por IP, sem login: os IPs do .env (ADA_IPS_VICTOR / ADA_IPS_CONVIDADO)
+escolhem a persona e o dono das conversas; qualquer outro IP é visitante. Cada
+um só vê e mexe nas próprias conversas.
+
+O cérebro é caixa-preta aqui: tudo passa por cerebro.responder_eventos().
+
+Rodar:
+    .venv/bin/python 2_interface/back/server.py                              # só esta máquina
+    ADA_HOST=$(tailscale ip -4) .venv/bin/python 2_interface/back/server.py  # tailnet
+Testar a interface SEM carregar o modelo (eventos de mentira, resposta na hora):
+    ADA_FAKE=1 .venv/bin/python 2_interface/back/server.py
+"""
 import json
 import os
 import queue
@@ -64,7 +85,7 @@ class Job:
     saida: queue.Queue = field(default_factory=queue.Queue)  # eventos só deste job
 
 
-jobs = queue.Queue()
+entrada = queue.Queue()
 pronta = threading.Event()
 
 
@@ -107,7 +128,7 @@ def worker():
     print(f"[interface] PRONTA  ->  {URL}")
 
     while True:
-        job = jobs.get()
+        job = entrada.get()
         try:
             for ev in gerar(job.historico):
                 job.saida.put(ev)
@@ -132,7 +153,7 @@ def index():
 def info(req: Request):
     """A UI consulta isto pra saber se já pode liberar o input."""
     return {"pronta": pronta.is_set(), "adapter": Path(ADAPTER).name,
-            "fake": FAKE, "fila": jobs.qsize(),
+            "fake": FAKE, "fila": entrada.qsize(),
             "usuario": usuario_de(req), "origem": req.client.host if req.client else "?"}
 
 
@@ -204,7 +225,7 @@ async def chat(req: Request):
     historico = ([{"role": "system", "content": SYSTEMS[usuario_de(req)]}] +
                  [{"role": m["role"], "content": m["content"]} for m in armazem.mensagens(cid)])
     job = Job(historico=historico)
-    jobs.put(job)
+    entrada.put(job)
 
     def stream():
         resposta, think, tools = "", "", []

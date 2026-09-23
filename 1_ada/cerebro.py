@@ -1,4 +1,26 @@
+"""
+Cérebro da ADA — núcleo único.
 
+Tudo que define "quem é a ADA" e como ela pensa mora aqui:
+  - config do modelo (Qwen3.8-27B em GGUF 3 bits + adapter LoRA via ADA_ADAPTER)
+  - system prompt por usuário (persona + base de conhecimento):
+    SYSTEM, SYSTEM_CONVIDADO e SYSTEM_VISITANTE
+  - carregar() do modelo no llama.cpp (tudo na GPU)
+  - runtime de tools (responder / responder_stream / responder_eventos)
+
+As interfaces (terminal, web, benchmark) só importam este módulo, montam o
+histórico e chamam um dos responder(). Pra trocar o adapter, o system prompt ou
+os parâmetros de geração, mexe SÓ aqui.
+
+Fluxo de um turno (responder_eventos):
+  1. monta o prompt com o template do Qwen e as tools no system (tools=POOL)
+  2. pensa e responde na mesma geração, soltando eventos think/resp
+  3. se a resposta trouxer <tool_call>: executa as tools, injeta os
+     <tool_response> e fala de novo em cima dos resultados reais
+
+Depende de llama-cpp-python, do pacote tools/ (funções reais) e de
+1_ada/conhecimento (RAG). Persona com dados reais fica no personas_local.py (local).
+"""
 import atexit
 import json
 import os
