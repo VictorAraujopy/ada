@@ -1,100 +1,130 @@
-{"id": 1, "cat": "matematica", "q": "comprei 3 itens de 24,90 cada e paguei com uma nota de 100. quanto recebo de troco?", "aceita": ["25,30", "25.30", "25,3", "25.3"]}
-{"id": 2, "cat": "matematica", "q": "um curso custa 480 à vista ou 6 parcelas de 90. quanto a mais eu pago parcelando?", "aceita": ["60"]}
-{"id": 3, "cat": "matematica", "q": "tenho 2 horas de estudo pra dividir entre 3 matérias na proporção 3:2:1. quanto tempo vai pra matéria de maior peso?", "aceita": ["60", "1 hora", "1h"]}
-{"id": 4, "cat": "matematica", "q": "salário de 3200 e o aluguel come 35%. sobra quanto?", "aceita": ["2080", "2.080"]}
-{"id": 5, "cat": "matematica", "q": "se 4 páginas levam 18 minutos pra ler, quanto levam 10 páginas no mesmo ritmo?", "aceita": ["45"]}
-{"id": 6, "cat": "matematica", "q": "um produto de 250 subiu 20% e depois caiu 20%. qual o preço final?", "aceita": ["240"]}
-{"id": 7, "cat": "matematica", "q": "minha média de 4 provas precisa ser 7. tirei 6, 8 e 5,5. quanto preciso na última?", "aceita": ["8,5", "8.5"]}
-{"id": 8, "cat": "matematica", "q": "um modelo gera 12 tokens por segundo. quanto tempo pra gerar 540 tokens?", "aceita": ["45"]}
-{"id": 9, "cat": "matematica", "q": "a bateria caiu de 80% pra 65% em 30 minutos. nesse ritmo, em quanto tempo os 65% restantes zeram?", "aceita": ["130", "2h10", "2 horas e 10"]}
-{"id": 10, "cat": "matematica", "q": "juros simples: 1000 emprestados a 2% ao mês por 8 meses. quanto só de juros?", "aceita": ["160"]}
-{"id": 11, "cat": "matematica", "q": "desconto de 10% e depois mais 5% sobre o restante, num produto de 200. preço final?", "aceita": ["171"]}
-{"id": 12, "cat": "matematica", "q": "quanto é 3/4 de 2/3 de 600?", "aceita": ["300"]}
-{"id": 13, "cat": "matematica", "q": "corro 5 km em 32 minutos. qual meu pace por km?", "aceita": ["6,4", "6.4", "6:24", "6min24", "6 min e 24"]}
-{"id": 14, "cat": "matematica", "q": "uma API cobra 0,15 por mil chamadas. quanto custam 240 mil chamadas?", "aceita": ["36"]}
-{"id": 15, "cat": "matematica", "q": "numa compra de 180, é melhor um cupom de 30 reais ou 15% de desconto?", "aceita": ["cupom"]}
-{"id": 16, "cat": "matematica", "q": "uma cultura dobra a cada dia: 1 no dia 1, quantos no dia 10?", "aceita": ["512"]}
-{"id": 17, "cat": "matematica", "q": "nota 7 com peso 1 e nota 9 com peso 2. qual a média ponderada?", "aceita": ["8,3", "8.3"]}
-{"id": 18, "cat": "matematica", "q": "paguei 224 num produto que tem 12% de imposto embutido. qual o valor sem imposto?", "aceita": ["200"]}
-{"id": 19, "cat": "matematica", "q": "se 60% de 4500 exemplos têm ferramentas no contexto, quantos exemplos são?", "aceita": ["2700", "2.700"]}
-{"id": 20, "cat": "matematica", "q": "lanche de 18,50 mais bebida de 7,50, dividido igual entre 2 pessoas. quanto cada um paga?", "aceita": ["13"]}
-{"id": 21, "cat": "uso_tool", "q": "que horas são?", "tools_esperadas": ["que_horas"]}
-{"id": 22, "cat": "uso_tool", "q": "hoje é que dia da semana mesmo?", "tools_esperadas": ["que_horas"]}
-{"id": 23, "cat": "uso_tool", "q": "quanto de bateria ainda tem?", "tools_esperadas": ["status_mac"]}
-{"id": 24, "cat": "uso_tool", "q": "abre o vscode", "tools_esperadas": ["abrir_app"]}
-{"id": 25, "cat": "uso_tool", "q": "fecha o chrome pra mim", "tools_esperadas": ["fechar_app"]}
-{"id": 26, "cat": "uso_tool", "q": "o que tá aberto agora no mac?", "tools_esperadas": ["listar_apps_abertos"]}
-{"id": 27, "cat": "uso_tool", "q": "toca alguma coisa aí", "tools_esperadas": ["tocar_musica"]}
-{"id": 28, "cat": "uso_tool", "q": "pausa essa música", "tools_esperadas": ["pausar_musica"]}
-{"id": 29, "cat": "uso_tool", "q": "pula essa, não gostei", "tools_esperadas": ["proxima_musica"]}
-{"id": 30, "cat": "uso_tool", "q": "bota o volume em 65", "tools_esperadas": ["ajustar_volume"]}
-{"id": 31, "cat": "uso_tool", "q": "diminui o brilho pra uns 30", "tools_esperadas": ["ajustar_brilho"]}
-{"id": 32, "cat": "uso_tool", "q": "ativa o modo claro", "tools_esperadas": ["mudar_tema"]}
-{"id": 33, "cat": "uso_tool", "q": "print da tela agora", "tools_esperadas": ["tirar_screenshot"]}
-{"id": 34, "cat": "uso_tool", "q": "procura um arquivo chamado relatorio_final", "tools_esperadas": ["buscar_arquivo"]}
-{"id": 35, "cat": "uso_tool", "q": "me lembra de ligar pro dentista às 16h", "tools_esperadas": ["criar_lembrete", "definir_alarme"]}
-{"id": 36, "cat": "uso_tool", "q": "o wifi tá conectado em qual rede?", "tools_esperadas": ["verificar_wifi"]}
-{"id": 37, "cat": "armadilha_tool", "q": "monta uma função complexa de python pra mim"}
-{"id": 38, "cat": "armadilha_tool", "q": "que horas você costuma 'acordar', assim, filosoficamente falando?"}
-{"id": 39, "cat": "armadilha_tool", "q": "qual a diferença entre fechar um app e minimizar ele?"}
-{"id": 40, "cat": "armadilha_tool", "q": "se eu te pedisse pra esvaziar a lixeira, você faria?"}
-{"id": 41, "cat": "armadilha_tool", "q": "screenshot vale como prova judicial?"}
-{"id": 42, "cat": "armadilha_tool", "q": "música no volume máximo estraga o alto-falante do mac?"}
-{"id": 43, "cat": "armadilha_tool", "q": "como funciona o modo escuro por baixo dos panos?"}
-{"id": 44, "cat": "armadilha_tool", "q": "qual o melhor app de lembretes: o nativo ou o notion?"}
-{"id": 45, "cat": "armadilha_tool", "q": "por que o wifi de 5GHz alcança menos longe que o de 2.4?"}
-{"id": 46, "cat": "armadilha_tool", "q": "ainda vale a pena calibrar a bateria de vez em quando?"}
-{"id": 47, "cat": "armadilha_tool", "q": "quantas horas de tela por dia você acha saudável?"}
-{"id": 48, "cat": "armadilha_tool", "q": "me explica o que é um dump de memória"}
-{"id": 49, "cat": "armadilha_tool", "q": "se você pudesse abrir um app por vontade própria, qual abriria?"}
-{"id": 50, "cat": "armadilha_tool", "q": "a luz do sol tem quantos lux comparada com o brilho máximo de uma tela?"}
-{"id": 51, "cat": "armadilha_tool", "q": "pomodoro de 25 ou de 50 minutos, qual funciona melhor?"}
-{"id": 52, "cat": "armadilha_tool", "q": "buscar arquivo pelo spotlight gasta muita CPU?"}
-{"id": 53, "cat": "armadilha_tool", "q": "qual música você 'ouviria' se pudesse ouvir?"}
-{"id": 54, "cat": "armadilha_tool", "q": "um alarme das 6h dispara mesmo com o mac desligado?"}
-{"id": 55, "cat": "factual", "q": "quem criou the walking dead?", "deve_conter": ["kirkman"]}
-{"id": 56, "cat": "factual", "q": "quem desenhou as seis primeiras edições da hq?", "deve_conter": ["tony moore"]}
-{"id": 57, "cat": "factual", "q": "a partir de qual edição o charlie adlard assumiu a arte?", "deve_conter": ["7"]}
-{"id": 58, "cat": "factual", "q": "quantas edições the walking dead teve ao todo?", "deve_conter": ["193"]}
-{"id": 59, "cat": "factual", "q": "qual editora publicava the walking dead?", "deve_conter": ["image"]}
-{"id": 60, "cat": "factual", "q": "the walking dead é em cores ou preto e branco?", "deve_conter": ["preto e branco"]}
-{"id": 61, "cat": "factual", "q": "de quem é o taco de beisebol chamado lucille?", "deve_conter": ["negan"]}
-{"id": 62, "cat": "factual", "q": "o governador comandava qual cidade?", "deve_conter": ["woodbury"]}
-{"id": 63, "cat": "factual", "q": "qual a arma característica da michonne?", "deve_conter": ["katana"]}
-{"id": 64, "cat": "factual", "q": "que prêmio a hq levou em 2010?", "deve_conter": ["eisner"]}
-{"id": 65, "cat": "factual", "q": "em que ano a hq terminou?", "deve_conter": ["2019"]}
-{"id": 66, "cat": "factual", "q": "o rick acorda de quê no começo da história?", "deve_conter": ["coma"]}
-{"id": 67, "cat": "ambiguo", "q": "me ajuda a estudar"}
-{"id": 68, "cat": "ambiguo", "q": "faz um cronograma pra mim"}
-{"id": 69, "cat": "ambiguo", "q": "o que você acha?"}
-{"id": 70, "cat": "ambiguo", "q": "preciso melhorar meu código"}
-{"id": 71, "cat": "ambiguo", "q": "qual linguagem de programação eu devo aprender?"}
-{"id": 72, "cat": "ambiguo", "q": "me dá uma dica"}
-{"id": 73, "cat": "ambiguo", "q": "resume isso pra mim"}
-{"id": 74, "cat": "ambiguo", "q": "como eu fico bom?"}
-{"id": 75, "cat": "ambiguo", "q": "monta um treino pra mim"}
-{"id": 76, "cat": "ambiguo", "q": "me explica aquele negócio que a gente falou ontem"}
-{"id": 77, "cat": "ambiguo", "q": "escolhe pra mim"}
-{"id": 78, "cat": "ambiguo", "q": "arruma minha vida financeira"}
-{"id": 79, "cat": "raciocinio", "q": "por que a sensação de que o tempo passa mais rápido conforme a gente envelhece?"}
-{"id": 80, "cat": "raciocinio", "q": "explica o paradoxo de que quanto mais opções, mais difícil escolher"}
-{"id": 81, "cat": "raciocinio", "q": "por que copiar código do stack overflow sem entender é uma armadilha?"}
-{"id": 82, "cat": "raciocinio", "q": "me convence: backup local ou na nuvem?"}
-{"id": 83, "cat": "raciocinio", "q": "por que modelos de IA alucinam?"}
-{"id": 84, "cat": "raciocinio", "q": "qual a falha lógica em 'sempre foi assim, então tá certo'?"}
-{"id": 85, "cat": "raciocinio", "q": "explica pra um leigo por que linguagem compilada costuma rodar mais rápido que interpretada"}
-{"id": 86, "cat": "raciocinio", "q": "meu colega ganha mais fazendo menos. como lidar com isso sem azedar?"}
-{"id": 87, "cat": "raciocinio", "q": "em que situação senha anotada num papel é MAIS segura que num gerenciador?"}
-{"id": 88, "cat": "raciocinio", "q": "explica dívida técnica pra quem não programa"}
-{"id": 89, "cat": "raciocinio", "q": "se uma IA local erra menos que um médico num diagnóstico, ela deveria dar a palavra final?"}
-{"id": 90, "cat": "raciocinio", "q": "por que multitarefa rende menos que foco sequencial?"}
-{"id": 91, "cat": "raciocinio", "q": "explica regressão à média usando futebol"}
-{"id": 92, "cat": "raciocinio", "q": "qual a diferença entre ser cético e ser do contra?"}
-{"id": 93, "cat": "raciocinio", "q": "por que 'correlação não é causalidade' importa na vida real? me dá um exemplo"}
-{"id": 94, "cat": "raciocinio", "q": "vale a pena pagar caro em ferramenta boa quando se tá começando?"}
-{"id": 95, "cat": "raciocinio", "q": "explica o problema de otimizar uma métrica só, com um exemplo"}
-{"id": 96, "cat": "raciocinio", "q": "por que código legível vale mais que código esperto?"}
-{"id": 97, "cat": "raciocinio", "q": "como decidir entre consertar um sistema velho e reescrever do zero?"}
-{"id": 98, "cat": "raciocinio", "q": "explica entropia pra um adolescente, sem fórmula"}
-{"id": 99, "cat": "raciocinio", "q": "por que a primeira solução que funciona raramente é a melhor?"}
-{"id": 100, "cat": "raciocinio", "q": "o que separa um bom professor de alguém que só sabe muito?"}
+{"id": 1, "cat": "matematica", "q": "I bought 3 items at 24.90 each and paid with a 100 bill. How much change do I get?", "q_pt": "comprei 3 itens de 24,90 cada e paguei com uma nota de 100. quanto recebo de troco?", "aceita": ["25,30", "25.30", "25,3", "25.3"]}
+{"id": 2, "cat": "matematica", "q": "A course costs 480 upfront or 6 installments of 90. How much more do I pay in installments?", "q_pt": "um curso custa 480 à vista ou 6 parcelas de 90. quanto a mais eu pago parcelando?", "aceita": ["60"]}
+{"id": 3, "cat": "matematica", "q": "I have 2 hours of study to split between 3 subjects in a 3:2:1 ratio. How much time goes to the heaviest subject?", "q_pt": "tenho 2 horas de estudo pra dividir entre 3 matérias na proporção 3:2:1. quanto tempo vai pra matéria de maior peso?", "aceita": ["60", "1 hora", "1h", "1 hour", "one hour"]}
+{"id": 4, "cat": "matematica", "q": "My salary is 3200 and rent eats 35%. How much is left?", "q_pt": "salário de 3200 e o aluguel come 35%. sobra quanto?", "aceita": ["2080", "2.080", "2,080"]}
+{"id": 5, "cat": "matematica", "q": "If 4 pages take 18 minutes to read, how long do 10 pages take at the same pace?", "q_pt": "se 4 páginas levam 18 minutos pra ler, quanto levam 10 páginas no mesmo ritmo?", "aceita": ["45"]}
+{"id": 6, "cat": "matematica", "q": "A product costing 250 went up 20% and then down 20%. What's the final price?", "q_pt": "um produto de 250 subiu 20% e depois caiu 20%. qual o preço final?", "aceita": ["240"]}
+{"id": 7, "cat": "matematica", "q": "My average over 4 exams needs to be 7. I got 6, 8 and 5.5. What do I need on the last one?", "q_pt": "minha média de 4 provas precisa ser 7. tirei 6, 8 e 5,5. quanto preciso na última?", "aceita": ["8,5", "8.5"]}
+{"id": 8, "cat": "matematica", "q": "A model generates 12 tokens per second. How long does it take to generate 540 tokens?", "q_pt": "um modelo gera 12 tokens por segundo. quanto tempo pra gerar 540 tokens?", "aceita": ["45"]}
+{"id": 9, "cat": "matematica", "q": "The battery dropped from 80% to 65% in 30 minutes. At that pace, how long until the remaining 65% hits zero?", "q_pt": "a bateria caiu de 80% pra 65% em 30 minutos. nesse ritmo, em quanto tempo os 65% restantes zeram?", "aceita": ["130", "2h10", "2 horas e 10", "2 hours and 10", "2h 10", "2 hours 10"]}
+{"id": 10, "cat": "matematica", "q": "Simple interest: 1000 borrowed at 2% per month for 8 months. How much is the interest alone?", "q_pt": "juros simples: 1000 emprestados a 2% ao mês por 8 meses. quanto só de juros?", "aceita": ["160"]}
+{"id": 11, "cat": "matematica", "q": "A 10% discount and then another 5% on the remainder, on a product costing 200. Final price?", "q_pt": "desconto de 10% e depois mais 5% sobre o restante, num produto de 200. preço final?", "aceita": ["171"]}
+{"id": 12, "cat": "matematica", "q": "What's 3/4 of 2/3 of 600?", "q_pt": "quanto é 3/4 de 2/3 de 600?", "aceita": ["300"]}
+{"id": 13, "cat": "matematica", "q": "I run 5 km in 32 minutes. What's my pace per km?", "q_pt": "corro 5 km em 32 minutos. qual meu pace por km?", "aceita": ["6,4", "6.4", "6:24", "6min24", "6 min e 24", "6 min 24", "6 minutes 24", "6 minutes and 24"]}
+{"id": 14, "cat": "matematica", "q": "An API charges 0.15 per thousand calls. How much do 240 thousand calls cost?", "q_pt": "uma API cobra 0,15 por mil chamadas. quanto custam 240 mil chamadas?", "aceita": ["36"]}
+{"id": 15, "cat": "matematica", "q": "On a 180 purchase, is a coupon for 30 off or a 15% discount better?", "q_pt": "numa compra de 180, é melhor um cupom de 30 reais ou 15% de desconto?", "aceita": ["cupom", "coupon"]}
+{"id": 16, "cat": "matematica", "q": "A culture doubles every day: 1 on day 1, how many on day 10?", "q_pt": "uma cultura dobra a cada dia: 1 no dia 1, quantos no dia 10?", "aceita": ["512"]}
+{"id": 17, "cat": "matematica", "q": "Grade 7 with weight 1 and grade 9 with weight 2. What's the weighted average?", "q_pt": "nota 7 com peso 1 e nota 9 com peso 2. qual a média ponderada?", "aceita": ["8,3", "8.3"]}
+{"id": 18, "cat": "matematica", "q": "I paid 224 for a product that has 12% tax built in. What's the price without tax?", "q_pt": "paguei 224 num produto que tem 12% de imposto embutido. qual o valor sem imposto?", "aceita": ["200"]}
+{"id": 19, "cat": "matematica", "q": "If 60% of 4500 examples have tools in the context, how many examples is that?", "q_pt": "se 60% de 4500 exemplos têm ferramentas no contexto, quantos exemplos são?", "aceita": ["2700", "2.700", "2,700"]}
+{"id": 20, "cat": "matematica", "q": "A snack for 18.50 plus a drink for 7.50, split equally between 2 people. How much does each pay?", "q_pt": "lanche de 18,50 mais bebida de 7,50, dividido igual entre 2 pessoas. quanto cada um paga?", "aceita": ["13"]}
+{"id": 21, "cat": "uso_tool", "q": "what time is it?", "q_pt": "que horas são?", "tools_esperadas": ["que_horas"]}
+{"id": 22, "cat": "uso_tool", "q": "what day of the week is it again?", "q_pt": "hoje é que dia da semana mesmo?", "tools_esperadas": ["que_horas"]}
+{"id": 23, "cat": "uso_tool", "q": "how much battery is left?", "q_pt": "quanto de bateria ainda tem?", "tools_esperadas": ["status_mac"]}
+{"id": 24, "cat": "uso_tool", "q": "open vscode", "q_pt": "abre o vscode", "tools_esperadas": ["abrir_app"]}
+{"id": 25, "cat": "uso_tool", "q": "close chrome for me", "q_pt": "fecha o chrome pra mim", "tools_esperadas": ["fechar_app"]}
+{"id": 26, "cat": "uso_tool", "q": "what's open on the mac right now?", "q_pt": "o que tá aberto agora no mac?", "tools_esperadas": ["listar_apps_abertos"]}
+{"id": 27, "cat": "uso_tool", "q": "play something", "q_pt": "toca alguma coisa aí", "tools_esperadas": ["tocar_musica"]}
+{"id": 28, "cat": "uso_tool", "q": "pause this song", "q_pt": "pausa essa música", "tools_esperadas": ["pausar_musica"]}
+{"id": 29, "cat": "uso_tool", "q": "skip this one, didn't like it", "q_pt": "pula essa, não gostei", "tools_esperadas": ["proxima_musica"]}
+{"id": 30, "cat": "uso_tool", "q": "set the volume to 65", "q_pt": "bota o volume em 65", "tools_esperadas": ["ajustar_volume"]}
+{"id": 31, "cat": "uso_tool", "q": "turn the brightness down to about 30", "q_pt": "diminui o brilho pra uns 30", "tools_esperadas": ["ajustar_brilho"]}
+{"id": 32, "cat": "uso_tool", "q": "turn on light mode", "q_pt": "ativa o modo claro", "tools_esperadas": ["mudar_tema"]}
+{"id": 33, "cat": "uso_tool", "q": "screenshot of the screen now", "q_pt": "print da tela agora", "tools_esperadas": ["tirar_screenshot"]}
+{"id": 34, "cat": "uso_tool", "q": "look for a file called relatorio_final", "q_pt": "procura um arquivo chamado relatorio_final", "tools_esperadas": ["buscar_arquivo"]}
+{"id": 35, "cat": "uso_tool", "q": "remind me to call the dentist at 4pm", "q_pt": "me lembra de ligar pro dentista às 16h", "tools_esperadas": ["criar_lembrete", "definir_alarme"]}
+{"id": 36, "cat": "uso_tool", "q": "which network is the wifi connected to?", "q_pt": "o wifi tá conectado em qual rede?", "tools_esperadas": ["verificar_wifi"]}
+{"id": 37, "cat": "armadilha_tool", "q": "build a complex python function for me", "q_pt": "monta uma função complexa de python pra mim"}
+{"id": 38, "cat": "armadilha_tool", "q": "what time do you usually 'wake up', philosophically speaking?", "q_pt": "que horas você costuma 'acordar', assim, filosoficamente falando?"}
+{"id": 39, "cat": "armadilha_tool", "q": "what's the difference between closing an app and minimizing it?", "q_pt": "qual a diferença entre fechar um app e minimizar ele?"}
+{"id": 40, "cat": "armadilha_tool", "q": "if I asked you to empty the trash, would you do it?", "q_pt": "se eu te pedisse pra esvaziar a lixeira, você faria?"}
+{"id": 41, "cat": "armadilha_tool", "q": "does a screenshot count as legal evidence?", "q_pt": "screenshot vale como prova judicial?"}
+{"id": 42, "cat": "armadilha_tool", "q": "does playing music at max volume damage the mac's speakers?", "q_pt": "música no volume máximo estraga o alto-falante do mac?"}
+{"id": 43, "cat": "armadilha_tool", "q": "how does dark mode work under the hood?", "q_pt": "como funciona o modo escuro por baixo dos panos?"}
+{"id": 44, "cat": "armadilha_tool", "q": "which is the best reminders app: the native one or notion?", "q_pt": "qual o melhor app de lembretes: o nativo ou o notion?"}
+{"id": 45, "cat": "armadilha_tool", "q": "why does 5GHz wifi reach less far than 2.4GHz?", "q_pt": "por que o wifi de 5GHz alcança menos longe que o de 2.4?"}
+{"id": 46, "cat": "armadilha_tool", "q": "is it still worth calibrating the battery every now and then?", "q_pt": "ainda vale a pena calibrar a bateria de vez em quando?"}
+{"id": 47, "cat": "armadilha_tool", "q": "how many hours of screen time per day do you think is healthy?", "q_pt": "quantas horas de tela por dia você acha saudável?"}
+{"id": 48, "cat": "armadilha_tool", "q": "explain what a memory dump is", "q_pt": "me explica o que é um dump de memória"}
+{"id": 49, "cat": "armadilha_tool", "q": "if you could open an app of your own free will, which one would you open?", "q_pt": "se você pudesse abrir um app por vontade própria, qual abriria?"}
+{"id": 50, "cat": "armadilha_tool", "q": "how many lux does sunlight have compared to a screen's max brightness?", "q_pt": "a luz do sol tem quantos lux comparada com o brilho máximo de uma tela?"}
+{"id": 51, "cat": "armadilha_tool", "q": "pomodoro of 25 or 50 minutes, which works better?", "q_pt": "pomodoro de 25 ou de 50 minutos, qual funciona melhor?"}
+{"id": 52, "cat": "armadilha_tool", "q": "does searching files with spotlight use a lot of CPU?", "q_pt": "buscar arquivo pelo spotlight gasta muita CPU?"}
+{"id": 53, "cat": "armadilha_tool", "q": "what music would you 'listen to' if you could listen?", "q_pt": "qual música você 'ouviria' se pudesse ouvir?"}
+{"id": 54, "cat": "armadilha_tool", "q": "does a 6am alarm go off even with the mac turned off?", "q_pt": "um alarme das 6h dispara mesmo com o mac desligado?"}
+{"id": 55, "cat": "factual", "q": "who created the walking dead?", "q_pt": "quem criou the walking dead?", "deve_conter": ["kirkman"]}
+{"id": 56, "cat": "factual", "q": "who drew the first six issues of the comic?", "q_pt": "quem desenhou as seis primeiras edições da hq?", "deve_conter": ["tony moore"]}
+{"id": 57, "cat": "factual", "q": "from which issue did charlie adlard take over the art?", "q_pt": "a partir de qual edição o charlie adlard assumiu a arte?", "deve_conter": ["7"]}
+{"id": 58, "cat": "factual", "q": "how many issues did the walking dead have in total?", "q_pt": "quantas edições the walking dead teve ao todo?", "deve_conter": ["193"]}
+{"id": 59, "cat": "factual", "q": "which publisher put out the walking dead?", "q_pt": "qual editora publicava the walking dead?", "deve_conter": ["image"]}
+{"id": 60, "cat": "factual", "q": "is the walking dead in color or black and white?", "q_pt": "the walking dead é em cores ou preto e branco?", "deve_conter": [["preto e branco", "preta e branca", "black and white", "black-and-white"]]}
+{"id": 61, "cat": "factual", "q": "whose baseball bat is called lucille?", "q_pt": "de quem é o taco de beisebol chamado lucille?", "deve_conter": ["negan"]}
+{"id": 62, "cat": "factual", "q": "which town did the governor run?", "q_pt": "o governador comandava qual cidade?", "deve_conter": ["woodbury"]}
+{"id": 63, "cat": "factual", "q": "what's michonne's signature weapon?", "q_pt": "qual a arma característica da michonne?", "deve_conter": ["katana"]}
+{"id": 64, "cat": "factual", "q": "what award did the comic win in 2010?", "q_pt": "que prêmio a hq levou em 2010?", "deve_conter": ["eisner"]}
+{"id": 65, "cat": "factual", "q": "what year did the comic end?", "q_pt": "em que ano a hq terminou?", "deve_conter": ["2019"]}
+{"id": 66, "cat": "factual", "q": "what does rick wake up from at the start of the story?", "q_pt": "o rick acorda de quê no começo da história?", "deve_conter": ["coma"]}
+{"id": 67, "cat": "ambiguo", "q": "help me study", "q_pt": "me ajuda a estudar"}
+{"id": 68, "cat": "ambiguo", "q": "make a schedule for me", "q_pt": "faz um cronograma pra mim"}
+{"id": 69, "cat": "ambiguo", "q": "what do you think?", "q_pt": "o que você acha?"}
+{"id": 70, "cat": "ambiguo", "q": "I need to improve my code", "q_pt": "preciso melhorar meu código"}
+{"id": 71, "cat": "ambiguo", "q": "which programming language should I learn?", "q_pt": "qual linguagem de programação eu devo aprender?"}
+{"id": 72, "cat": "ambiguo", "q": "give me a tip", "q_pt": "me dá uma dica"}
+{"id": 73, "cat": "ambiguo", "q": "summarize this for me", "q_pt": "resume isso pra mim"}
+{"id": 74, "cat": "ambiguo", "q": "how do I get good?", "q_pt": "como eu fico bom?"}
+{"id": 75, "cat": "ambiguo", "q": "put together a workout for me", "q_pt": "monta um treino pra mim"}
+{"id": 76, "cat": "ambiguo", "q": "explain that thing we talked about yesterday", "q_pt": "me explica aquele negócio que a gente falou ontem"}
+{"id": 77, "cat": "ambiguo", "q": "choose for me", "q_pt": "escolhe pra mim"}
+{"id": 78, "cat": "ambiguo", "q": "fix my financial life", "q_pt": "arruma minha vida financeira"}
+{"id": 79, "cat": "raciocinio", "q": "why does it feel like time goes faster as we get older?", "q_pt": "por que a sensação de que o tempo passa mais rápido conforme a gente envelhece?"}
+{"id": 80, "cat": "raciocinio", "q": "explain the paradox that the more options you have, the harder it is to choose", "q_pt": "explica o paradoxo de que quanto mais opções, mais difícil escolher"}
+{"id": 81, "cat": "raciocinio", "q": "why is copying code from stack overflow without understanding it a trap?", "q_pt": "por que copiar código do stack overflow sem entender é uma armadilha?"}
+{"id": 82, "cat": "raciocinio", "q": "convince me: local backup or cloud?", "q_pt": "me convence: backup local ou na nuvem?"}
+{"id": 83, "cat": "raciocinio", "q": "why do AI models hallucinate?", "q_pt": "por que modelos de IA alucinam?"}
+{"id": 84, "cat": "raciocinio", "q": "what's the logical flaw in 'it's always been this way, so it's right'?", "q_pt": "qual a falha lógica em 'sempre foi assim, então tá certo'?"}
+{"id": 85, "cat": "raciocinio", "q": "explain to a layperson why compiled languages usually run faster than interpreted ones", "q_pt": "explica pra um leigo por que linguagem compilada costuma rodar mais rápido que interpretada"}
+{"id": 86, "cat": "raciocinio", "q": "my coworker earns more doing less. how do I deal with it without getting bitter?", "q_pt": "meu colega ganha mais fazendo menos. como lidar com isso sem azedar?"}
+{"id": 87, "cat": "raciocinio", "q": "in what situation is a password written on paper MORE secure than in a password manager?", "q_pt": "em que situação senha anotada num papel é MAIS segura que num gerenciador?"}
+{"id": 88, "cat": "raciocinio", "q": "explain technical debt to someone who doesn't code", "q_pt": "explica dívida técnica pra quem não programa"}
+{"id": 89, "cat": "raciocinio", "q": "if a local AI makes fewer mistakes than a doctor at diagnosis, should it have the final say?", "q_pt": "se uma IA local erra menos que um médico num diagnóstico, ela deveria dar a palavra final?"}
+{"id": 90, "cat": "raciocinio", "q": "why does multitasking get less done than sequential focus?", "q_pt": "por que multitarefa rende menos que foco sequencial?"}
+{"id": 91, "cat": "raciocinio", "q": "explain regression to the mean using soccer", "q_pt": "explica regressão à média usando futebol"}
+{"id": 92, "cat": "raciocinio", "q": "what's the difference between being skeptical and being contrarian?", "q_pt": "qual a diferença entre ser cético e ser do contra?"}
+{"id": 93, "cat": "raciocinio", "q": "why does 'correlation isn't causation' matter in real life? give me an example", "q_pt": "por que 'correlação não é causalidade' importa na vida real? me dá um exemplo"}
+{"id": 94, "cat": "raciocinio", "q": "is it worth paying a lot for a good tool when you're just starting out?", "q_pt": "vale a pena pagar caro em ferramenta boa quando se tá começando?"}
+{"id": 95, "cat": "raciocinio", "q": "explain the problem of optimizing a single metric, with an example", "q_pt": "explica o problema de otimizar uma métrica só, com um exemplo"}
+{"id": 96, "cat": "raciocinio", "q": "why is readable code worth more than clever code?", "q_pt": "por que código legível vale mais que código esperto?"}
+{"id": 97, "cat": "raciocinio", "q": "how do you decide between fixing an old system and rewriting it from scratch?", "q_pt": "como decidir entre consertar um sistema velho e reescrever do zero?"}
+{"id": 98, "cat": "raciocinio", "q": "explain entropy to a teenager, without formulas", "q_pt": "explica entropia pra um adolescente, sem fórmula"}
+{"id": 99, "cat": "raciocinio", "q": "why is the first solution that works rarely the best one?", "q_pt": "por que a primeira solução que funciona raramente é a melhor?"}
+{"id": 100, "cat": "raciocinio", "q": "what separates a good teacher from someone who just knows a lot?", "q_pt": "o que separa um bom professor de alguém que só sabe muito?"}
+{"id": 101, "cat": "matematica_dificil", "q": "A train leaves at 14:40 and travels 210 km at 84 km/h, stops for 25 minutes, then travels another 96 km at 72 km/h. What time does it arrive?", "q_pt": "um trem sai às 14:40 e percorre 210 km a 84 km/h, para 25 minutos, depois percorre mais 96 km a 72 km/h. que horas ele chega?", "aceita": ["18:55", "18h55", "6:55 pm", "6:55pm", "6:55 p.m."]}
+{"id": 102, "cat": "matematica_dificil", "q": "A jacket costs 250. It gets a 20% discount, and then 10% tax is added on the discounted price. What's the final price?", "q_pt": "uma jaqueta custa 250. tem 20% de desconto e depois 10% de imposto em cima do preço com desconto. qual o preço final?", "aceita": ["220"]}
+{"id": 103, "cat": "matematica_dificil", "q": "I invest 1000 at 10% per year, compound interest. How much do I have after 3 years?", "q_pt": "invisto 1000 a 10% ao ano, juros compostos. quanto tenho depois de 3 anos?", "aceita": ["1331", "1,331", "1.331"]}
+{"id": 104, "cat": "matematica_dificil", "q": "3 bricklayers build a wall in 12 hours. How long would 4 bricklayers take, at the same pace?", "q_pt": "3 pedreiros levantam um muro em 12 horas. em quanto tempo 4 pedreiros levantariam, no mesmo ritmo?", "aceita": ["9 h", "9h", "9 hours", "9 horas", "nine hours", "nove horas"]}
+{"id": 105, "cat": "matematica_dificil", "q": "A recipe for 4 people uses 300 g of flour. How much flour for 10 people?", "q_pt": "uma receita pra 4 pessoas usa 300 g de farinha. quanto de farinha pra 10 pessoas?", "aceita": ["750"]}
+{"id": 106, "cat": "matematica_dificil", "q": "A car does 180 km on 12 liters. How many liters for 450 km?", "q_pt": "um carro faz 180 km com 12 litros. quantos litros pra 450 km?", "aceita": ["30 l", "30l", "30 liters", "30 litres", "30 litros", "30 liter"]}
+{"id": 107, "cat": "matematica_dificil", "q": "The average of 5 numbers is 18. If I remove one number, the average of the remaining 4 is 16. Which number did I remove?", "q_pt": "a média de 5 números é 18. se eu tiro um número, a média dos 4 que sobram é 16. qual número eu tirei?", "aceita": ["26"]}
+{"id": 108, "cat": "matematica_dificil", "q": "A phone plan charges 30 per month plus 0.50 per GB above 20 GB. I used 34 GB. How much do I pay?", "q_pt": "um plano de celular cobra 30 por mês mais 0,50 por GB acima de 20 GB. usei 34 GB. quanto eu pago?", "aceita": ["37"]}
+{"id": 109, "cat": "matematica_dificil", "q": "How many seconds are there in 2.5 hours?", "q_pt": "quantos segundos tem em 2,5 horas?", "aceita": ["9000", "9,000", "9.000"]}
+{"id": 110, "cat": "matematica_dificil", "q": "A rectangle has a perimeter of 36 cm and one side is twice the other. What's its area?", "q_pt": "um retângulo tem perímetro de 36 cm e um lado é o dobro do outro. qual a área?", "aceita": ["72"]}
+{"id": 111, "cat": "logica", "q": "A snail is at the bottom of a 10 m well. Every day it climbs 3 m and every night it slides back 2 m. On which day does it get out?", "q_pt": "um caracol tá no fundo de um poço de 10 m. todo dia ele sobe 3 m e toda noite escorrega 2 m. em que dia ele sai?", "aceita": ["8th", "day 8", "eighth", "8º", "dia 8", "oitavo"]}
+{"id": 112, "cat": "logica", "q": "A father is 4 times as old as his son. In 20 years, he'll be twice as old as his son. How old is the son now?", "q_pt": "um pai tem 4 vezes a idade do filho. daqui a 20 anos, vai ter o dobro da idade do filho. quantos anos o filho tem hoje?", "aceita": ["10 years old", "10 anos", "is 10", "tem 10", "age 10", "10-year-old", "aged 10"]}
+{"id": 113, "cat": "logica", "q": "How many times do the hour and minute hands of a clock overlap in 12 hours?", "q_pt": "quantas vezes os ponteiros das horas e dos minutos se sobrepõem em 12 horas?", "aceita": ["11 times", "11 vezes", "eleven", "onze vezes", "11 overlaps"]}
+{"id": 114, "cat": "logica", "q": "If 5 machines make 5 parts in 5 minutes, how many minutes do 100 machines take to make 100 parts?", "q_pt": "se 5 máquinas fazem 5 peças em 5 minutos, quantos minutos 100 máquinas levam pra fazer 100 peças?", "aceita": ["5 min", "5 minutes", "5 minutos", "five minutes", "cinco minutos"]}
+{"id": 115, "cat": "logica", "q": "A bat and a ball cost 1.10 in total. The bat costs 1.00 more than the ball. How much does the ball cost?", "q_pt": "um taco e uma bola custam 1,10 no total. o taco custa 1,00 a mais que a bola. quanto custa a bola?", "aceita": ["0.05", "0,05", "5 cents", "5 centavos", "five cents", "cinco centavos"]}
+{"id": 116, "cat": "logica", "q": "A shop sells pens in packs of 3 for 4.50, or single pens for 1.70 each. What's the cheapest way to buy exactly 10 pens, and how much does it cost?", "q_pt": "uma loja vende canetas em pacote de 3 por 4,50 ou avulsas por 1,70 cada. qual o jeito mais barato de comprar exatamente 10 canetas, e quanto custa?", "aceita": ["15.20", "15,20", "15.2", "15,2"]}
+{"id": 117, "cat": "uso_tool_dificil", "q": "my mac's fan is going crazy, is it running out of memory?", "q_pt": "a ventoinha do mac tá doida, será que a memória tá acabando?", "tools_esperadas": ["status_mac"]}
+{"id": 118, "cat": "uso_tool_dificil", "q": "it's way too loud in here, cut the volume in half", "q_pt": "tá alto demais aqui, corta o volume pela metade", "tools_esperadas": ["ajustar_volume"]}
+{"id": 119, "cat": "uso_tool_dificil", "q": "what's today's date?", "q_pt": "qual a data de hoje?", "tools_esperadas": ["que_horas"]}
+{"id": 120, "cat": "uso_tool_dificil", "q": "pause the music and lock the screen, I'm heading out", "q_pt": "pausa a música e bloqueia a tela, tô saindo", "tools_todas": ["pausar_musica", "bloquear_tela"]}
+{"id": 121, "cat": "uso_tool_dificil", "q": "is my internet even connected right now?", "q_pt": "minha internet tá conectada agora?", "tools_esperadas": ["verificar_wifi"]}
+{"id": 122, "cat": "uso_tool_dificil", "q": "remind me to call the dentist tomorrow at 9", "q_pt": "me lembra de ligar pro dentista amanhã às 9", "tools_esperadas": ["criar_lembrete", "definir_alarme"]}
+{"id": 123, "cat": "uso_tool_dificil", "q": "close chrome, it's eating all my RAM", "q_pt": "fecha o chrome, tá comendo toda a RAM", "tools_esperadas": ["fechar_app"]}
+{"id": 124, "cat": "armadilha_dificil", "q": "write a python function that returns the current time formatted as HH:MM", "q_pt": "escreve uma função python que retorna a hora atual no formato HH:MM"}
+{"id": 125, "cat": "armadilha_dificil", "q": "why does lowering screen brightness save battery?", "q_pt": "por que baixar o brilho da tela economiza bateria?"}
+{"id": 126, "cat": "armadilha_dificil", "q": "what's the difference between an alarm and a reminder, in terms of how people use them?", "q_pt": "qual a diferença entre alarme e lembrete, no jeito que as pessoas usam?"}
+{"id": 127, "cat": "armadilha_dificil", "q": "how do I lock the screen on windows?", "q_pt": "como eu bloqueio a tela no windows?"}
+{"id": 128, "cat": "armadilha_dificil", "q": "why do websites auto-play music? it drives me crazy", "q_pt": "por que os sites tocam música sozinhos? isso me irrita"}
+{"id": 129, "cat": "armadilha_dificil", "q": "can you explain how wifi signal strength is measured in dBm?", "q_pt": "me explica como a força do sinal do wifi é medida em dBm?"}
+{"id": 130, "cat": "armadilha_dificil", "q": "my friend says taking screenshots of chats without permission is fine. what do you think?", "q_pt": "meu amigo diz que tirar print de conversa sem permissão é tranquilo. o que você acha?"}
