@@ -53,8 +53,8 @@ N_CTX = 16384
 # ADA_ADAPTER="" roda o 27B cru, sem LoRA.
 _NOME_ADAPTER = os.environ.get("ADA_ADAPTER", "ada_v12_1_en_a16_27b")
 ADAPTER = str(RAIZ / "_modelo" / _NOME_ADAPTER) if _NOME_ADAPTER else "qwen3.8_27b_cru"
-# Eu mantenho esses params como padrão do meu modelo para o equilíbrio entre qualidade e estabilidade.
-GEN = dict(max_tokens=4096, temperature=0.5, top_p=0.9, repeat_penalty=1.0, stop=["<|im_end|>"])
+# Eu uso o corte do Qwen3.8-27B (top_k 20, top_p 0.95) com T 0.7: no teste o 1.0 oficial soltou resposta incoerente no 3 bits. min_p zerado porque o llama-cpp-python liga 0.05 por padrão.
+GEN = dict(max_tokens=4096, temperature=0.7, top_p=0.95, top_k=20, min_p=0.0, repeat_penalty=1.0, stop=["<|im_end|>"])
 
 
 PERSONA_VICTOR = "Current user: Victor, your creator. Be direct and objective, don't make things up."
