@@ -20,6 +20,7 @@ old/
 # Manual de operação pessoal (comandos, custos, pipeline de treino) + mapa
 /COMANDOS.md
 /MAPA.md
+/ADA_newgen.md
 
 # Material didático/pessoal do Victor (não sobe — é pra estudo dele, não pro mundo)
 # docs/ = os DOCX + geradores; README.md por pasta = guias internos.
