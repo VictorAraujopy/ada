@@ -1,7 +1,8 @@
 /* ADA — PAINEL DE OPERAÇÃO (controlador + widgets).
    mostra ao vivo o que a ADA faz: o córtex raciocinando (prosa), a decisão e cada
    tool virando uma tela de operação. dirigido pelo app.js (fluxo SSE) e reaberto
-   pelo clique na linha do raciocínio (mostrarCenario, estático).
+   pelo clique na linha do raciocínio (mostrarCenario, estático). não abre sozinho:
+   só pelo clique na linha do raciocínio.
 
    FASE 1: as tools devolvem o resultado como TEXTO → cai no widget genérico.
    Quando as tools passarem a devolver lista estruturada [[chave,valor,kind?], …],
@@ -110,7 +111,7 @@
   /* ---------- API incremental (fluxo ao vivo) ---------- */
   let racEl = null, toolEls = {};
   function reset() {
-    abrir(); limpar(); racEl = null; toolEls = {};
+    limpar(); racEl = null; toolEls = {};
     setFase('<span class="ph">raciocinando</span>');
   }
   function cardRac() {
@@ -172,7 +173,7 @@
   /* ---------- estático: reabrir o painel de uma mensagem já concluída ----------
      op = { think, decisao, tools:[{nome,res}], stats:{rac,resp,tok,passos}, recusa } */
   function mostrarCenario(op) {
-    reset();
+    reset(); abrir();
     if (op.think) pensa(op.think);
     if (op.decisao) decisao(op.decisao);
     if (op.stats) stats(op.stats.rac, op.stats.resp, op.stats.tok, op.stats.passos);
