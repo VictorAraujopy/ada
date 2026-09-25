@@ -1,6 +1,6 @@
 # ADA
 
-> A personal AI that runs **entirely on a Mac** — no cloud, no API, nothing ever leaves the machine.
+> A personal AI that runs **entirely on a Mac** — no cloud, no API. The only thing that ever goes online is a web search, when she decides she needs one.
 
 ADA's personality isn't a system prompt — it's **trained into the weights**. A LoRA adapter fine-tuned on top of **Qwen3.8-27B** gives her her own voice, opinions and taste, and she's wired to **act on macOS**. The goal: a real personal AI, not a generic assistant playing a role. *(The name comes from Ada Wong, of Resident Evil.)*
 
@@ -12,9 +12,10 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 
 - **Talks with a personality of her own** — dry, direct, with real opinions and taste, baked into the weights (not prompted)
 - **Acts on the Mac** — opens/closes apps, reads system status (battery/RAM/disk/Wi-Fi), controls music, volume, brightness and theme, takes screenshots, finds files, sets reminders & alarms
+- **Searches the web** — when the subject is current or she isn't sure of a fact (DuckDuckGo, no API key); a query with personal data is blocked before it leaves the Mac
 - **Chains tools** — decides on her own when to use a tool, and can run several in a single turn
 - **Persistent web chat** — streaming UI with live reasoning, tool cards, conversation history (SQLite) and markdown export
-- **100% local & offline** — chat in the browser or in the terminal
+- **The model runs 100% locally** — chat in the browser or in the terminal
 
 ## By the numbers
 
@@ -24,7 +25,7 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 | Personality adapter | LoRA, rank 16, on every linear layer |
 | Training data | 7,722 curated examples (+664 for validation) |
 | Runtime | Apple Silicon · llama.cpp on Metal · 16k context |
-| Cloud / API at runtime | **none — fully offline** |
+| Cloud / API at runtime | **none — only web search goes online** |
 
 ## How it works
 
