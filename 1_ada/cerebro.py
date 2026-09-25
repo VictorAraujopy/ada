@@ -1,4 +1,26 @@
+"""
+Cérebro da ADA — núcleo único.
 
+Tudo que define "quem é a ADA" e como ela pensa mora aqui:
+  - config do modelo (Qwen3.8-27B em GGUF 3 bits + adapter LoRA via ADA_ADAPTER)
+  - system prompt por usuário (persona + base de conhecimento):
+    SYSTEM, SYSTEM_CONVIDADO e SYSTEM_VISITANTE
+  - carregar() do modelo no llama.cpp (tudo na GPU)
+  - runtime de tools (responder / responder_stream / responder_eventos)
+
+As interfaces (terminal, web, benchmark) só importam este módulo, montam o
+histórico e chamam um dos responder(). Pra trocar o adapter, o system prompt ou
+os parâmetros de geração, mexe SÓ aqui.
+
+Fluxo de um turno (responder_eventos):
+  1. monta o prompt com o template do Qwen e as tools no system (tools=POOL)
+  2. pensa e responde na mesma geração, soltando eventos think/resp
+  3. se a resposta trouxer <tool_call>: executa as tools, injeta os
+     <tool_response> e fala de novo em cima dos resultados reais
+
+Depende de llama-cpp-python, do pacote tools/ (funções reais) e de
+1_ada/conhecimento (RAG). Persona com dados reais fica no personas_local.py (local).
+"""
 import atexit
 import json
 import os
@@ -31,14 +53,15 @@ N_CTX = 16384
 # ADA_ADAPTER="" roda o 27B cru, sem LoRA.
 _NOME_ADAPTER = os.environ.get("ADA_ADAPTER", "ada_v12_1_en_a16_27b")
 ADAPTER = str(RAIZ / "_modelo" / _NOME_ADAPTER) if _NOME_ADAPTER else "qwen3.8_27b_cru"
-# Eu mantenho esses params como padrão do meu modelo para o equilíbrio entre qualidade e estabilidade.
-GEN = dict(max_tokens=4096, temperature=0.5, top_p=0.9, repeat_penalty=1.0, stop=["<|im_end|>"])
+# Eu uso o corte do Qwen3.8-27B (top_k 20, top_p 0.95) com T 0.7: no teste o 1.0 oficial soltou resposta incoerente no 3 bits. min_p zerado porque o llama-cpp-python liga 0.05 por padrão.
+GEN = dict(max_tokens=4096, temperature=0.7, top_p=0.95, top_k=20, min_p=0.0, repeat_penalty=1.0, stop=["<|im_end|>"])
 
 
 PERSONA_VICTOR = "Current user: Victor, your creator. Be direct and objective, don't make things up."
 # Eu mantenho a persona do visitante genérica no repo e deixo os dados reais em personas_local.py.
-PERSONA_CONVIDADO = ("Current user: visitor (not Victor, not your creator). "
+PERSONA_VISITANTE = ("Current user: visitor (not Victor, not your creator). "
                      "Be kind and objective, don't make things up.")
+PERSONA_CONVIDADO = PERSONA_VISITANTE
 try:
     from personas_local import PERSONA_CONVIDADO  # sobrescreve com a pessoa real, se existir
 except ImportError:
@@ -56,7 +79,8 @@ def montar_system(persona=PERSONA_VICTOR):
 
 
 SYSTEM = montar_system()              # texto / web (Victor)
-SYSTEM_CONVIDADO = montar_system(persona=PERSONA_CONVIDADO)  # web quando quem chama não é o Victor
+SYSTEM_CONVIDADO = montar_system(persona=PERSONA_CONVIDADO)  # web: IP do convidado (.env)
+SYSTEM_VISITANTE = montar_system(persona=PERSONA_VISITANTE)  # web: qualquer outro IP
 
 
 def carregar():

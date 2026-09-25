@@ -136,3 +136,9 @@
   .app.painel-aberto #painel { width: min(412px, 90vw); }
   .pnl-in { width: min(412px, 90vw); }
 }
+/* celular: tela cheia */
+@media (max-width: 760px) {
+  .app.painel-aberto #painel, .pnl-in { width: 100%; }
+  #painel { border-left: none; box-shadow: none; }
+  .pnl-x { width: 40px; height: 40px; font-size: 15px; }
+}

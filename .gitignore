@@ -20,6 +20,7 @@ old/
 # Manual de operação pessoal (comandos, custos, pipeline de treino) + mapa
 /COMANDOS.md
 /MAPA.md
+/ADA_newgen.md
 
 # Material didático/pessoal do Victor (não sobe — é pra estudo dele, não pro mundo)
 # docs/ = os DOCX + geradores; README.md por pasta = guias internos.
@@ -38,6 +39,8 @@ _modelo/*_fp32/
 
 # Personas com dados pessoais reais (privacidade de terceiros — uso local)
 1_ada/personas_local.py
+# IPs de quem é quem na interface (Tailscale) — uso local
+.env
 
 # Andaime de pronome (gambiarra temporária até o v12 aprender; não é produto)
 1_ada/conhecimento/base/quem_e_quem.md

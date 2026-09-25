@@ -1,4 +1,19 @@
+"""
+Armazenamento das conversas da interface — SQLite local (2_interface/back/conversas.db).
 
+Duas tabelas:
+  conversas — id, título (1ª mensagem encurtada), criada/atualizada, dono
+  mensagens — role + content (o que vai pro modelo) e um meta JSON só do
+              assistant (tools usadas, tempos, raciocínio) pra UI restaurar
+              a tela fielmente depois de um F5 ou reinício.
+
+Uma conexão única + lock: os endpoints rodam em threads do pool do Starlette,
+e o SQLite não gosta de conexão compartilhada sem proteção.
+
+Rodado direto, vira log no terminal (conversas de todos os donos):
+    .venv/bin/python 2_interface/back/armazem.py          # lista
+    .venv/bin/python 2_interface/back/armazem.py <id>     # uma conversa inteira
+"""
 import json
 import sqlite3
 import threading
@@ -47,8 +62,17 @@ def listar(dono="victor"):
     return [dict(r) for r in rs]
 
 
-def existe(cid):
-    return bool(_sql("SELECT 1 FROM conversas WHERE id=?", (cid,)))
+def listar_todas():
+    """Todas as conversas, com dono — pro log no terminal."""
+    rs = _sql("""SELECT c.id, c.dono, c.titulo, c.atualizada,
+                 (SELECT COUNT(*) FROM mensagens m WHERE m.conversa = c.id) AS n
+                 FROM conversas c ORDER BY c.atualizada DESC""")
+    return [dict(r) for r in rs]
+
+
+def existe(cid, dono):
+    """A conversa existe e é desse dono."""
+    return bool(_sql("SELECT 1 FROM conversas WHERE id=? AND dono=?", (cid, dono)))
 
 
 def titulo(cid):
@@ -76,28 +100,24 @@ def renomear(cid, novo):
     return novo
 
 
-def avaliar(cid, voto, n=None):
-    """Grava o feedback (voto: 'up' | 'down' | None limpa) numa fala da ADA.
-    Sem n, vale a última fala assistant da conversa (o caso do chat ao vivo)."""
-    if n is None:
-        r = _sql("SELECT n FROM mensagens WHERE conversa=? AND role='assistant' "
-                 "ORDER BY n DESC LIMIT 1", (cid,))
-        if not r:
-            return False
-        n = r[0]["n"]
-    r = _sql("SELECT meta FROM mensagens WHERE n=? AND conversa=?", (n, cid))
-    if not r:
-        return False
-    meta = json.loads(r[0]["meta"]) if r[0]["meta"] else {}
-    if voto:
-        meta["voto"] = voto
-    else:
-        meta.pop("voto", None)
-    _sql("UPDATE mensagens SET meta=? WHERE n=?",
-         (json.dumps(meta, ensure_ascii=False), n))
-    return True
-
-
 def apagar(cid):
     _sql("DELETE FROM mensagens WHERE conversa=?", (cid,))
     _sql("DELETE FROM conversas WHERE id=?", (cid,))
+
+
+if __name__ == "__main__":
+    # log no terminal: sem argumento lista todas; com o id, mostra a conversa inteira
+    import sys
+
+    if len(sys.argv) < 2:
+        for c in listar_todas():
+            quando = time.strftime("%d/%m %H:%M", time.localtime(c["atualizada"]))
+            print(f"{c['dono']:<10} {c['id']}  {quando}  {c['n']:>3} msgs  {c['titulo']}")
+    elif not titulo(sys.argv[1]):
+        sys.exit("conversa não existe")
+    else:
+        print(f"# {titulo(sys.argv[1])}\n")
+        for m in mensagens(sys.argv[1]):
+            for t in (m["meta"] or {}).get("tools", []):
+                print(f"  🔧 {t['nome']} → {t['res']}")
+            print(f"{'ADA' if m['role'] == 'assistant' else 'user'}: {m['content']}\n")

@@ -22,6 +22,7 @@ const ICONES = {
   listar_lembretes: '<path d="M5.5 4h8M5.5 8h8M5.5 12h8"/><circle cx="2.6" cy="4" r=".7"/><circle cx="2.6" cy="8" r=".7"/><circle cx="2.6" cy="12" r=".7"/>',
   listar_apps_abertos: '<rect x="2.5" y="2.5" width="4.5" height="4.5"/><rect x="9" y="2.5" width="4.5" height="4.5"/><rect x="2.5" y="9" width="4.5" height="4.5"/><rect x="9" y="9" width="4.5" height="4.5"/>',
   esvaziar_lixeira: '<path d="M3.5 4.5h9l-.8 9.5H4.3z"/><path d="M2.5 4.5h11M6 4.5V3h4v1.5"/>',
+  pesquisar_web: '<circle cx="8" cy="8" r="6"/><path d="M2 8h12"/><path d="M8 2a9 9 0 0 1 0 12a9 9 0 0 1 0-12"/>',
 };
 
 const icoSVG = (n) => `<svg viewBox="0 0 16 16">${ICONES[n] || '<circle cx="8" cy="8" r="5"/>'}</svg>`;

@@ -29,12 +29,32 @@ footer { padding: 14px var(--faixa) 12px; border-top: 1px solid var(--line);
 #form button:disabled { opacity: .35; cursor: default; }
 .rodape-nota { margin-top: 9px; text-align: center; font-size: 9px; color: #3a302e; letter-spacing: 2.4px; text-transform: uppercase; }
 
+/* fundo escurecido atrás do drawer / painel overlay (toque nele fecha — app.js) */
+@media (max-width: 1024px) {
+  .app.menu-aberto::before, .app.painel-aberto::before { content: ''; position: absolute; inset: 0; z-index: 4;
+    background: rgba(0,0,0,.55); }
+}
+
+/* toque não tem hover: renomear/apagar ficam sempre visíveis */
+@media (hover: none) {
+  .conv .ren, .conv .del { opacity: .7; padding: 4px 6px; }
+}
+
 /* responsivo: a sidebar vira drawer em telas estreitas */
 @media (max-width: 760px) {
+  :root { --faixa: 14px; }
   #menu { display: block; }
   #sidebar { position: absolute; z-index: 5; height: 100%; transform: translateX(-100%); transition: transform .25s ease; background: #0a0908; }
   .app.menu-aberto #sidebar { transform: none; box-shadow: 12px 0 30px rgba(0,0,0,.55); }
   .empty-ada { font-size: 60px; letter-spacing: 14px; margin-right: -14px; }
   .sub { display: none; }
   .body { max-width: 100%; }
+  .bubble { max-width: 85%; }
+  .logo { width: 34px; height: 34px; }
+  .logo span { font-size: 20px; }
+  .ekg, #exportar, .rodape-nota { display: none; }
+  .badge { min-width: 0; }
+  #estado { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .actions { min-width: 0; }
+  #msg { font-size: 16px; }
 }

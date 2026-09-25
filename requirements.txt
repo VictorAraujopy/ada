@@ -8,7 +8,9 @@ huggingface_hub==1.17.0  # baixa o GGUF e o tokenizer
 mlx-vlm==0.5.0          # ADA antiga (Qwen3.5-9B em MLX) — benchmarks de comparação
 transformers==5.9.0     # tokenizer e chat template do Qwen
 numpy==2.4.6
+ddgs==9.16.0            # pesquisar_web: busca no DuckDuckGo sem chave de API
 
 # --- Interface web (2_interface — só pra demo) ---
 fastapi==0.136.3
 uvicorn==0.48.0
+python-dotenv==1.2.3    # lê o .env local (IPs de quem é quem)

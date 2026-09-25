@@ -9,12 +9,14 @@ const btnExp  = document.getElementById('exportar');
 const appEl   = document.querySelector('.app');
 const tplEmpty = document.getElementById('tpl-empty');
 const mkThink = window.ADA_criarThink;
+const toque = matchMedia('(hover: none)').matches;
 
 let conversa = localStorage.adaConversa || null;  // id da conversa aberta
 let ocupado = false;        // true enquanto uma resposta streama
 let aborto = null;          // AbortController do stream atual
 
 const scroll = () => chat.scrollTop = chat.scrollHeight;
+const focar = () => { if (!toque) input.focus(); };   // no celular o foco sobe o teclado por cima da resposta
 const el = (cls, txt) => {
   const d = document.createElement('div');
   d.className = cls;
@@ -61,7 +63,7 @@ async function esperarPronta() {
         form.classList.remove('off');
         input.disabled = send.disabled = false;
         input.placeholder = 'fala.';
-        input.focus();
+        focar();
         return;
       }
     } catch (e) { /* servidor ainda subindo — tenta de novo */ }
@@ -157,31 +159,15 @@ function addAda() {
   const av = el('avatar'); av.textContent = 'A';
   const body = el('body');
   const drv = mkThink();
-  drv.root.onclick = () => { if (m._op) Painel.mostrarCenario(m._op); };
+  drv.root.onclick = () => {
+    if (m._op) Painel.mostrarCenario(m._op);
+    else if (m.classList.contains('viva')) Painel.abrir();   // ainda gerando: abre o painel ao vivo
+  };
   const answer = el('answer');
   body.append(drv.root, answer);
   m.append(av, body);
   chat.appendChild(m);
   return { m, body, think: drv, answer, t0: performance.now() };
-}
-
-function addVotos(container, n, atual) {
-  const linha = el('votos');
-  for (const [voto, simbolo] of [["up", "✓ boa"], ["down", "✕ ruim"]]) {
-    const b = document.createElement('button');
-    b.className = 'voto' + (atual === voto ? ' ativo' : '');
-    b.textContent = simbolo;
-    b.title = voto === 'up' ? 'resposta boa (vira exemplo de treino)' : 'resposta ruim (vira correção no treino)';
-    b.onclick = async () => {
-      const novo = b.classList.contains('ativo') ? null : voto;   // clicar de novo desfaz
-      await fetch('/avaliar', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ conversa, n, voto: novo }) });
-      linha.querySelectorAll('.voto').forEach(x => x.classList.remove('ativo'));
-      if (novo) b.classList.add('ativo');
-    };
-    linha.appendChild(b);
-  }
-  container.appendChild(linha);
 }
 
 function addErro(txt) {
@@ -216,12 +202,11 @@ async function abrir(id) {
       stats: { rac: pensouS, resp: respondeuS, tok, passos: tools.length },
       recusa: !tools.length && REGEX_RECUSA.test(msg.content),
     };
-    addVotos(g.body, msg.n ?? null, meta.voto ?? null);
   }
   marcarAtiva();
   scroll();
   appEl.classList.remove('menu-aberto');
-  input.focus();
+  focar();
 }
 
 function novaConversa() {
@@ -231,7 +216,7 @@ function novaConversa() {
   marcarAtiva();
   telaVazia();
   appEl.classList.remove('menu-aberto');
-  input.focus();
+  focar();
 }
 
 /* ---------- envio + leitura do stream SSE (dirige chat E painel) ---------- */
@@ -260,7 +245,7 @@ async function enviar(txt) {
   addUser(txt);
   const g = addAda();
   g.m.classList.add('viva');   // avatar pulsa enquanto ela gera
-  Painel.reset();              // abre o painel, limpa, fase "raciocinando"
+  Painel.reset();              // limpa, fase "raciocinando"
   const cur = document.createElement('span'); cur.className = 'cursor';
   g.answer.appendChild(cur);
   aborto = new AbortController();
@@ -352,7 +337,6 @@ async function enviar(txt) {
         stats: { rac: pensouS ?? 0, resp: respondeuS, tok, passos: tools.length },
         recusa,
       };
-      addVotos(g.body, null, null);
     }
     g.m.querySelector('.fila-aviso')?.remove();
     carregarLista();   // atualiza "agora" / ordem na sidebar
@@ -367,7 +351,7 @@ async function enviar(txt) {
     aborto = null;
     ocupado = false;
     send.disabled = input.disabled;
-    input.focus();
+    focar();
   }
 }
 
@@ -385,6 +369,11 @@ form.onsubmit = (e) => {
 document.getElementById('nova').onclick = novaConversa;
 document.getElementById('menu').onclick = () => appEl.classList.toggle('menu-aberto');
 document.getElementById('pnlX').onclick = () => Painel.fechar();
+appEl.addEventListener('click', (e) => {   // toque no fundo escurecido fecha o drawer / painel overlay
+  if (e.target !== appEl) return;
+  appEl.classList.remove('menu-aberto');
+  Painel.fechar();
+});
 btnExp.onclick = () => { if (conversa) window.location = `/conversas/${conversa}/export`; };
 
 (async () => {
