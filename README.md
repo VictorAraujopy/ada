@@ -45,17 +45,7 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 
 > The **personality dataset**, the **training pipeline** and the **adapter weights** are proprietary and **not** part of this repo — that's ADA's secret sauce.
 
-## Run it
-
-```bash
-python3 -m venv .venv && source .venv/bin/activate   # Python 3.12, Apple Silicon
-pip install -r requirements.txt                      # llama-cpp-python compiles with Metal
-
-ADA_ADAPTER="" python 2_interface/back/server.py     # web chat -> http://localhost:8000
-ADA_ADAPTER="" python 3_chat/chat_ada.py             # terminal chat
-```
-
-The adapter isn't in the repo, so `ADA_ADAPTER=""` runs the raw **Qwen3.8-27B** on the same runtime, tools and grounding facts. The base GGUF (~10 GB) downloads from Hugging Face on first run. Set `ADA_BASE=off` to turn off the grounding facts.
+## Benchmark
 
 **Latest benchmark** (23 Sep 2026) — ADA `v12_1_en` (Qwen3.8-27B, 3-bit, English) vs ADA `v12` (Qwen3.5-9B, 4-bit, Portuguese):
 
