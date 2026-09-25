@@ -2,9 +2,11 @@
 
 > A personal AI that runs **entirely on a Mac** — no cloud, no API, nothing ever leaves the machine.
 
-ADA's personality isn't a system prompt — it's **trained into the weights**. A LoRA adapter fine-tuned on top of **Qwen3.5-9B** gives her her own voice, opinions and taste, and she's wired to **act on macOS**. The goal: a real personal AI, not a generic assistant playing a role. *(The name comes from Ada Wong, of Resident Evil.)*
+ADA's personality isn't a system prompt — it's **trained into the weights**. A LoRA adapter fine-tuned on top of **Qwen3.8-27B** gives her her own voice, opinions and taste, and she's wired to **act on macOS**. The goal: a real personal AI, not a generic assistant playing a role. *(The name comes from Ada Wong, of Resident Evil.)*
 
 https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
+
+> This demo was recorded on one of ADA's **early versions** (still on the 9B). She's come a long way since, and there's a lot more I'll be showing soon.
 
 ## What she does
 
@@ -14,23 +16,21 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 - **Persistent web chat** — streaming UI with live reasoning, tool cards, conversation history (SQLite) and markdown export
 - **100% local & offline** — chat in the browser or in the terminal
 
-> The **voice pipeline** (Whisper → 9B → voice-cloned TTS) works and lives in `_arquivado/` — on hold until it fits comfortably next to the 9B on 16 GB.
-
 ## By the numbers
 
 | | |
 |---|---|
-| Base model | Qwen3.5-9B |
-| Personality adapter | **43M params — 0.48% of the model** |
-| Training data | 4,537 curated examples |
-| Runtime | Apple Silicon · MLX · 4-bit |
+| Base model | Qwen3.8-27B — 3-bit GGUF, ~10 GB |
+| Personality adapter | LoRA, rank 16, on every linear layer |
+| Training data | 7,722 curated examples (+664 for validation) |
+| Runtime | Apple Silicon · llama.cpp on Metal · 16k context |
 | Cloud / API at runtime | **none — fully offline** |
 
 ## How it works
 
-- **Brain** — Qwen3.5-9B (base) + a LoRA adapter that carries the personality
-- **Training** — LoRA / QLoRA (4-bit) on a cloud GPU, then converted to MLX to run locally
-- **Inference** — MLX on Apple Silicon's unified memory; the 9B fits in 16 GB at 4-bit, fully offline
+- **Brain** — Qwen3.8-27B (base) + a LoRA adapter that carries the personality
+- **Training** — LoRA+ in bf16 on a cloud GPU, then converted to GGUF to run locally
+- **Inference** — llama.cpp with every layer on the GPU. 3-bit is the largest that fits in 16 GB without dumbing the model down, and only 16 of the 64 layers keep a KV cache (the rest are linear attention), so 16k tokens of context cost ~1 GB
 - **Tools** — the model reasons, picks a tool, runs it, then answers — no hardcoded intent matching
 - **Evaluation** — each version is compared on an internal benchmark (kept out of the repo): answer keys scored by script, code run against hidden tests, conversations scored by two judges. Latest result below
 
@@ -41,22 +41,20 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 | `1_ada/` | the core: brain runtime (`cerebro.py`), tool executors, grounding facts (RAG) |
 | `2_interface/` | the main product — web chat (`back/` FastAPI + SSE, `front/` vanilla JS) |
 | `3_chat/` | terminal chat, for debugging the brain raw |
-| `_modelo/` | the LoRA adapter (MLX format) — the weights |
-| `_arquivado/` | the voice pipeline + resident daemon, parked |
 
-> The **personality dataset** and **training pipeline** are proprietary and **not** part of this repo — that's ADA's secret sauce.
+> The **personality dataset**, the **training pipeline** and the **adapter weights** are proprietary and **not** part of this repo — that's ADA's secret sauce.
 
 ## Run it
 
 ```bash
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+python3 -m venv .venv && source .venv/bin/activate   # Python 3.12, Apple Silicon
+pip install -r requirements.txt                      # llama-cpp-python compiles with Metal
 
-python 2_interface/back/server.py   # web chat -> http://localhost:8000
-python 3_chat/chat_ada.py           # terminal chat
+ADA_ADAPTER="" python 2_interface/back/server.py     # web chat -> http://localhost:8000
+ADA_ADAPTER="" python 3_chat/chat_ada.py             # terminal chat
 ```
 
-The current adapter (`ada_v11b_a16_9b`) is included (with `ada_v10_9b` as the previous version); the **Qwen3.5-9B** base downloads automatically on first run (~5 GB at 4-bit). Set `ADA_BASE=off` to test the raw LoRA without the grounding facts.
+The adapter isn't in the repo, so `ADA_ADAPTER=""` runs the raw **Qwen3.8-27B** on the same runtime, tools and grounding facts. The base GGUF (~10 GB) downloads from Hugging Face on first run. Set `ADA_BASE=off` to turn off the grounding facts.
 
 **Latest benchmark** (23 Sep 2026) — ADA `v12_1_en` (Qwen3.8-27B, 3-bit, English) vs ADA `v12` (Qwen3.5-9B, 4-bit, Portuguese):
 
@@ -73,7 +71,7 @@ Model and language changed together, so the gains measure both.
 
 ## Stack
 
-`Qwen3.5-9B` · `MLX` · `LoRA / QLoRA` · `PEFT` · `FastAPI` · `SQLite` · Mac M4 (16 GB)
+`Qwen3.8-27B` · `llama.cpp (GGUF)` · `LoRA / LoRA+` · `PEFT` · `FastAPI` · `SQLite` · Mac M4 (16 GB)
 
 ## License
 
