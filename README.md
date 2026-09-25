@@ -1,6 +1,6 @@
 # ADA
 
-> A personal AI that runs **entirely on a Mac** — no cloud, no API. The only thing that ever goes online is a web search, when she decides she needs one.
+> A personal AI whose brain runs **entirely on a Mac** — no cloud model, no AI API. The only thing that goes online is a web search, when she decides she needs one.
 
 ADA's personality isn't a system prompt — it's **trained into the weights**. A LoRA adapter fine-tuned on top of **Qwen3.8-27B** gives her her own voice, opinions and taste, and she's wired to **act on macOS**. The goal: a real personal AI, not a generic assistant playing a role. *(The name comes from Ada Wong, of Resident Evil.)*
 
@@ -25,7 +25,7 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 | Personality adapter | LoRA, rank 16, on every linear layer |
 | Training data | 7,722 curated examples (+664 for validation) |
 | Runtime | Apple Silicon · llama.cpp on Metal · 16k context |
-| Cloud / API at runtime | **none — only web search goes online** |
+| Cloud model / AI API | **none** — the only online call is the web search tool (DuckDuckGo) |
 
 ## How it works
 
