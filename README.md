@@ -39,7 +39,6 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 | Path | What |
 |---|---|
 | `1_ada/` | the core: brain runtime (`cerebro.py`), tool executors, grounding facts (RAG) |
-| `2_interface/` | the main product — web chat (`back/` FastAPI + SSE, `front/` vanilla JS) |
 | `3_chat/` | terminal chat, for debugging the brain raw |
 | `_modelo/` | the LoRA adapter (MLX format) — the weights |
 | `_arquivado/` | the voice pipeline + resident daemon, parked |
@@ -52,7 +51,6 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-python 2_interface/back/server.py   # web chat -> http://localhost:8000
 python 3_chat/chat_ada.py           # terminal chat
 ```
 
