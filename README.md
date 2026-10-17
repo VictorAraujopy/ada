@@ -40,7 +40,6 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 | Path | What |
 |---|---|
 | `1_ada/` | the core: brain runtime (`cerebro.py`), tool executors, grounding facts (RAG) |
-| `2_interface/` | the main product — web chat (`back/` FastAPI + SSE, `front/` vanilla JS) |
 | `3_chat/` | terminal chat, for debugging the brain raw |
 
 > The **personality dataset**, the **training pipeline** and the **adapter weights** are proprietary and **not** part of this repo — that's ADA's secret sauce.

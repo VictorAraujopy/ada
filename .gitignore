@@ -15,7 +15,7 @@ old/
 # Runtime / temporários
 *.log
 **/screenshot_*.png
-2_interface/back/conversas.db*
+conversas.db*
 
 # Manual de operação pessoal (comandos, custos, pipeline de treino) + mapa
 /COMANDOS.md
