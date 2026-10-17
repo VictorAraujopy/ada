@@ -1,3 +1,4 @@
+"""As tools da ADA por categoria e o EXECUTORES, que liga o nome de cada uma à função real."""
 from . import sistema, apps, musica, arquivos, lembretes, web
 
 EXECUTORES = {

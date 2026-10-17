@@ -1,3 +1,4 @@
+"""Base de fatos confiáveis em base/*.md: fora do system prompt desde 17/10, volta como RAG."""
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent / "base"

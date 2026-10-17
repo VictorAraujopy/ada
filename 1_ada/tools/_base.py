@@ -1,3 +1,4 @@
+"""O que as tools usam pra falar com o Mac: shell, AppleScript e o player de música aberto."""
 import subprocess
 
 

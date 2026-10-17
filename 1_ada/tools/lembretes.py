@@ -1,7 +1,9 @@
+"""Tools de lembretes e alarme, pelo app Lembretes."""
 from ._base import osa
 
 
 def criar_lembrete(texto=None, quando=None, **kw):
+    """Cria um lembrete no app Lembretes."""
     if not texto:
         return "missing the text"
     osa(f'tell application "Reminders" to make new reminder with properties {{name:"{texto}"}}')
@@ -9,12 +11,14 @@ def criar_lembrete(texto=None, quando=None, **kw):
 
 
 def listar_lembretes(**kw):
+    """Lista até 10 lembretes ainda não concluídos."""
     r = osa('tell application "Reminders" to get name of reminders whose completed is false')
     nomes = [n.strip() for n in r.split(",") if n.strip()]
     return "reminders: " + ("; ".join(nomes[:10]) if nomes else "no active reminders")
 
 
 def definir_alarme(hora=None, **kw):
+    """Cria o alarme como lembrete, com a hora no nome."""
     if not hora:
         return "missing the time"
     osa(f'tell application "Reminders" to make new reminder with properties {{name:"Alarme {hora}"}}')
@@ -22,7 +26,7 @@ def definir_alarme(hora=None, **kw):
 
 
 def esvaziar_lixeira(**kw):
-    # DESARMADA: apaga arquivos de verdade. So liberar quando o runtime tiver confirmacao.
+    """Recusa por enquanto: ação destrutiva ainda sem etapa de confirmação."""
     return "emptying the trash isn't enabled yet (destructive action, confirmation step missing)"
 
 

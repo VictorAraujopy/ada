@@ -1,3 +1,4 @@
+"""Tools do sistema: hora, status do Mac, volume, brilho, tema, Wi-Fi e bloqueio de tela."""
 import re
 from datetime import datetime
 
@@ -7,11 +8,13 @@ DIAS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sun
 
 
 def que_horas(**kw):
+    """Devolve data, hora e dia da semana."""
     a = datetime.now()
     return f"{a.strftime('%Y-%m-%d %H:%M')}, {DIAS[a.weekday()]}"
 
 
 def status_mac(**kw):
+    """Resume bateria, RAM livre e disco livre."""
     batt = sh(["pmset", "-g", "batt"])
     pct = re.search(r"(\d+)%", batt)
     bat = f"battery {pct.group(1)}%" if pct else "plugged in"
@@ -23,6 +26,7 @@ def status_mac(**kw):
 
 
 def ajustar_volume(nivel=None, **kw):
+    """Põe o volume de saída entre 0 e 100."""
     try:
         n = max(0, min(100, int(float(nivel))))
     except (TypeError, ValueError):
@@ -32,6 +36,7 @@ def ajustar_volume(nivel=None, **kw):
 
 
 def ajustar_brilho(nivel=None, **kw):
+    """Ajusta o brilho entre 0 e 100 (precisa do utilitário brightness)."""
     try:
         n = max(0, min(100, int(float(nivel))))
     except (TypeError, ValueError):
@@ -43,6 +48,7 @@ def ajustar_brilho(nivel=None, **kw):
 
 
 def mudar_tema(modo=None, **kw):
+    """Liga ou desliga o modo escuro; sem modo dito, alterna."""
     m = (modo or "").lower()
     alvo = ("true" if m in ("escuro", "dark", "noturno")
             else "false" if m in ("claro", "light") else "not dark mode")
@@ -52,13 +58,14 @@ def mudar_tema(modo=None, **kw):
 
 
 def verificar_wifi(**kw):
-    # a interface Wi-Fi varia por Mac (en0/en1...) -> descobre pelo hardware port
+    """Diz em qual rede Wi-Fi o Mac está."""
     m = re.search(r"Wi-Fi.*?Device:\s*(en\d+)", sh(["networksetup", "-listallhardwareports"]), re.DOTALL)
     iface = m.group(1) if m else "en0"
     return sh(["networksetup", "-getairportnetwork", iface]) or "Wi-Fi: unknown state"
 
 
 def bloquear_tela(**kw):
+    """Bloqueia a tela (Ctrl+Cmd+Q)."""
     osa('tell application "System Events" to keystroke "q" using {control down, command down}')
     return "screen locked"
 

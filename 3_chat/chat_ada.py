@@ -1,3 +1,4 @@
+"""Chat de terminal com a ADA, pra debugar o cérebro: .venv/bin/python 3_chat/chat_ada.py"""
 
 import os
 import sys
@@ -5,22 +6,23 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ / "1_ada"))
-import cerebro  # núcleo da ADA: config, system, carregar, runtime de tools
+import cerebro
 
-SHOW_THINK = os.environ.get("ADA_SHOW_THINK", "off") == "on"  # demo: mostra o raciocinio (pro video)
+SHOW_THINK = os.environ.get("ADA_SHOW_THINK", "off") == "on"
 
 
 def main():
-    _b = "OFF (teste puro)" if os.environ.get("ADA_BASE", "on") == "off" else "ON"
-    print(f"[ADAPTER: {Path(cerebro.ADAPTER).name} | base de conhecimento: {_b}]")
+    """Carrega a ADA e conversa no terminal até 'sair'."""
+    config = cerebro.configurar()
+    print(f"[ADAPTER: {config.adapter}]")
     print("Carregando a ADA... (uns 30-60s)")
-    model, processor, config = cerebro.carregar()
+    model, processor, config = cerebro.carregar(config)
 
     print("\n" + "=" * 56)
     print("  ADA pronta. Fala com ela.  ('sair' pra encerrar)")
     print("=" * 56 + "\n")
 
-    historico = [{"role": "system", "content": cerebro.SYSTEM}]
+    historico = [{"role": "system", "content": config.systems["victor"]}]
 
     while True:
         try:
@@ -37,12 +39,11 @@ def main():
 
         historico.append({"role": "user", "content": entrada})
         if SHOW_THINK:
-            # modo demo: streama o raciocinio AO VIVO (cinza) + tools + resposta ao vivo
-            resposta, passo = cerebro.responder_stream(model, processor, config, historico, **cerebro.GEN)
+            resposta, passo = cerebro.responder_stream(model, processor, config, historico, **config.geracao)
             print()
         else:
-            resposta, passo = cerebro.responder(model, processor, config, historico, **cerebro.GEN)
-            if passo:  # chamou tool(s): mostra cada uma (nome -> resultado)
+            resposta, passo = cerebro.responder(model, processor, config, historico, **config.geracao)
+            if passo:
                 for t_nome, _, t_res in passo:
                     print(f"\033[93m[{t_nome} → {t_res}]\033[0m")
             print(f"\033[96mADA>\033[0m {resposta}\n")

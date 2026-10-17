@@ -7,7 +7,7 @@ from ddgs.exceptions import DDGSException
 
 NOMES_PRIVADOS = []
 try:
-    from personas_local import NOMES_PRIVADOS  # nomes reais ficam no arquivo gitignorado
+    from personas_local import NOMES_PRIVADOS
 except ImportError:
     pass
 
@@ -16,10 +16,12 @@ DADO_PESSOAL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+|~/|/Users/")
 
 
 def _dominio(url):
+    """Tira o www do domínio da URL."""
     return urlparse(url).netloc.removeprefix("www.")
 
 
 def _limpar(texto):
+    """Tira o HTML e corta o trecho no tamanho máximo."""
     texto = " ".join(re.sub(r"<[^>]*>", "", texto).split())
     if len(texto) <= MAX_TRECHO:
         return texto
@@ -27,11 +29,13 @@ def _limpar(texto):
 
 
 def _vaza_dado_pessoal(consulta):
+    """Diz se a consulta tem dado pessoal ou nome privado (aí ela não vai pra internet)."""
     palavras = set(re.findall(r"\w+", consulta.lower()))
     return bool(DADO_PESSOAL.search(consulta)) or any(n.lower() in palavras for n in NOMES_PRIVADOS)
 
 
 def pesquisar_web(consulta=None, **kw):
+    """Busca no DuckDuckGo e devolve até 5 resultados com domínio e trecho."""
     consulta = (consulta or "").strip()
     if not consulta:
         return "missing the query"
