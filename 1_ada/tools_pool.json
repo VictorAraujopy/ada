@@ -18,5 +18,6 @@
   {"type":"function","function":{"name":"listar_apps_abertos","description":"Lists the apps currently open.","parameters":{"type":"object","properties":{},"required":[]}}},
   {"type":"function","function":{"name":"verificar_wifi","description":"Checks the state of the Wi-Fi connection.","parameters":{"type":"object","properties":{},"required":[]}}},
   {"type":"function","function":{"name":"esvaziar_lixeira","description":"Empties the Mac's trash.","parameters":{"type":"object","properties":{},"required":[]}}},
-  {"type":"function","function":{"name":"pesquisar_web","description":"Searches the internet for information. Use it when the subject is current, changing, or you're not sure of the fact.","parameters":{"type":"object","properties":{"consulta":{"type":"string","description":"what to search for"}},"required":["consulta"]}}}
+  {"type":"function","function":{"name":"pesquisar_web","description":"Searches the internet for information. Use it when the subject is current, changing, or you're not sure of the fact.","parameters":{"type":"object","properties":{"consulta":{"type":"string","description":"what to search for"}},"required":["consulta"]}}},
+  {"type":"function","function":{"name":"calcular","description":"Calculates a math expression exactly. Use it for any arithmetic instead of doing the math in your head. Percentages as division: 15% of 200 is 15/100*200.","parameters":{"type":"object","properties":{"expressao":{"type":"string","description":"the math expression, e.g. (7.5*2 + 8*3)/5"}},"required":["expressao"]}}}
 ]

@@ -1,4 +1,6 @@
 """Tools de apps do Mac: abrir, fechar e listar os abertos."""
+import re
+
 from ._base import sh, osa
 
 
@@ -18,11 +20,19 @@ def fechar_app(nome=None, **kw):
 
 
 def listar_apps_abertos(**kw):
-    """Lista até 12 apps abertos em primeiro plano."""
-    r = osa('tell application "System Events" to get name of '
-            '(processes where background only is false)')
-    apps = [a.strip() for a in r.split(",") if a.strip()]
-    return "open apps: " + ", ".join(apps[:12])
+    """Lista os apps com ícone no Dock lendo o lsappinfo, que não pede permissão de Automação."""
+    saida_do_lsappinfo = sh(["lsappinfo", "list"])
+    apps = []
+    nome_do_app = None
+    for linha in saida_do_lsappinfo.splitlines():
+        cabecalho_do_app = re.match(r'\s*\d+\) "(.+?)"', linha)
+        if cabecalho_do_app:
+            nome_do_app = cabecalho_do_app.group(1)
+        elif 'type="Foreground"' in linha:
+            apps.append(nome_do_app)
+    if not apps:
+        return "couldn't list the open apps"
+    return "open apps: " + ", ".join(apps)
 
 
 EXEC = {"abrir_app": abrir_app, "fechar_app": fechar_app, "listar_apps_abertos": listar_apps_abertos}
