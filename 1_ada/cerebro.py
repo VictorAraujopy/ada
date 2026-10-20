@@ -1,4 +1,4 @@
-"""Cérebro da ADA: configura, carrega o modelo e o olho, e responde em eventos (pensar, tools e resposta)."""
+"""Cérebro da ADA: configura, carrega o modelo e o mmproj, e responde em eventos (raciocínio, tools e resposta)."""
 import atexit
 import ctypes
 import hashlib
@@ -28,7 +28,7 @@ IMAGEM_NO_TEMPLATE = "<|vision_start|><|image_pad|><|vision_end|>"
 
 @dataclass(frozen=True)
 class Config:
-    """Eu guardo tudo que um processo meu usa: modelo, olho, contexto, sampling, tools e o system de cada usuário."""
+    """Configuração de um processo: modelo, mmproj, contexto, sampling, tools e o system de cada usuário."""
 
     adapter: str
     pasta_adapter: Path | None
@@ -48,7 +48,7 @@ class Config:
 
 
 def configurar():
-    """Eu monto a configuração do processo a partir do ADA_ADAPTER, do tools_pool.json e das personas."""
+    """Monta o Config a partir do ADA_ADAPTER, do tools_pool.json e das personas."""
     nome_adapter = os.environ.get("ADA_ADAPTER", "ada_1_0_27b")
     persona_visitante = "Current user: visitor (not Victor, not your creator). Be kind, don't make things up."
     return Config(
@@ -76,7 +76,7 @@ def configurar():
 
 
 def _persona_do_convidado(padrao):
-    """Eu uso a persona real do personas_local.py (fora do git) quando ele existe."""
+    """Devolve a PERSONA_CONVIDADO do personas_local.py (fora do git), ou `padrao` se o arquivo não existir."""
     try:
         from personas_local import PERSONA_CONVIDADO
     except ImportError:
@@ -85,10 +85,10 @@ def _persona_do_convidado(padrao):
 
 
 class Modelo(Llama):
-    """Eu sou o Llama com memórias em disco: retomo do maior começo de prompt já lido em vez de reler tudo."""
+    """Llama que salva o estado do llama.cpp em disco e retoma do maior começo de prompt já lido, em vez de reler tudo."""
 
     def __init__(self, pasta_memorias, maximo_memorias, **kwargs):
-        """Eu abro o modelo e a minha pasta de memórias, limpando as de processos que já acabaram."""
+        """Abre o modelo, cria a pasta de memórias deste processo e apaga as de processos que já acabaram."""
         super().__init__(**kwargs)
         _apagar_memorias_de_processos_mortos(pasta_memorias)
         self.pasta_memorias = pasta_memorias / str(os.getpid())
@@ -100,13 +100,13 @@ class Modelo(Llama):
         self.olho = None
 
     def generate(self, tokens, **kwargs):
-        """Eu sigo da memória carregada quando `continuar` está ligado, sem tentar reaproveitar o prefixo."""
+        """Gera a partir do estado carregado quando `continuar` está ligado, sem tentar reaproveitar o prefixo."""
         if self.continuar:
             kwargs["reset"] = False
         return super().generate(tokens, **kwargs)
 
     def retomar(self, tokens):
-        """Eu carrego a memória salva que cobre o maior começo de `tokens` e devolvo quantos tokens ela já leu."""
+        """Carrega a memória salva que cobre o maior começo de `tokens` e devolve quantos tokens ela já leu (0 se nenhuma cobre)."""
         cobrem = [arquivo for arquivo, lidos in self.memorias.items() if tokens[: len(lidos)] == lidos]
         if not cobrem:
             self.reset()
@@ -126,7 +126,7 @@ class Modelo(Llama):
         return len(lidos)
 
     def guardar(self, tokens):
-        """Eu salvo em disco a memória que leu exatamente `tokens` e apago a menos usada se passar do máximo."""
+        """Salva em disco o estado que leu exatamente `tokens` e apaga a memória menos usada se passar de `maximo_memorias`."""
         arquivo = self.pasta_memorias / f"{len(tokens)}-{hash(tuple(tokens)) & 0xFFFFFFFF:08x}.bin"
         llama_cpp.llama_state_save_file(self._ctx.ctx, str(arquivo).encode(),
                                         (llama_cpp.llama_token * len(tokens))(*tokens), len(tokens))
@@ -139,7 +139,7 @@ class Modelo(Llama):
 
 
 def _apagar_memorias_de_processos_mortos(raiz):
-    """Eu apago as pastas de memória de processos que já acabaram (cada processo vivo tem a sua)."""
+    """Apaga as pastas de memória cujo PID não está mais rodando."""
     for pasta in raiz.glob("*"):
         try:
             os.kill(int(pasta.name), 0)
@@ -150,7 +150,7 @@ def _apagar_memorias_de_processos_mortos(raiz):
 
 
 def carregar(config=None):
-    """Eu abro o GGUF com tudo na GPU, o olho em cima dele, pego o tokenizer do Qwen e devolvo (modelo, tokenizer, config)."""
+    """Abre o GGUF com todas as camadas na GPU, o mmproj e o tokenizer do Qwen; devolve (modelo, tokenizer, config)."""
     config = config or configurar()
     gguf, lora = _arquivos_do_modelo(config)
     modelo = Modelo(config.pasta_memorias, config.maximo_memorias, model_path=gguf, n_ctx=config.n_ctx,
@@ -163,7 +163,7 @@ def carregar(config=None):
 
 
 def _abrir_o_olho(modelo, config):
-    """Eu abro o mmproj F16 (a visão do próprio Qwen3.8) na CPU: a GPU já está no teto com a ADA."""
+    """Abre o mmproj F16 do Qwen3.8 (visão) na CPU."""
     parametros = mtmd.mtmd_context_params_default()
     parametros.use_gpu = False
     parametros.print_timings = False
@@ -177,7 +177,7 @@ def _abrir_o_olho(modelo, config):
 
 
 def _arquivos_do_modelo(config):
-    """Eu devolvo (gguf, lora): a ADA fundida roda sozinha; o adapter vai em cima do 27B da ISTA."""
+    """Devolve (gguf, lora): o ada.gguf fundido sem LoRA, se existir; senão o 27B da ISTA com o adapter.gguf."""
     if config.pasta_adapter and (config.pasta_adapter / "ada.gguf").exists():
         return str(config.pasta_adapter / "ada.gguf"), None
     base = hf_hub_download(config.repo_base, config.arquivo_base)
@@ -186,7 +186,7 @@ def _arquivos_do_modelo(config):
 
 
 def parse_tool_calls(texto):
-    """Eu extraio todas as chamadas de tool do texto para executar no turno."""
+    """Extrai do texto as chamadas de tool como lista de (nome, args)."""
     chamadas = []
     for bloco in re.findall(r"<tool_call>(.*?)</tool_call>", texto, re.DOTALL):
         fn = re.search(r"<function=(\w+)>", bloco)
@@ -199,7 +199,7 @@ def parse_tool_calls(texto):
 
 
 def executar(nome, args):
-    """Eu executo a função real da tool e devolvo a mensagem em vez de explodir o programa."""
+    """Roda a função da tool `nome` com `args` e devolve o resultado, ou a mensagem de erro em vez de levantar exceção."""
     fn = EXECUTORES.get(nome)
     if not fn:
         return f"tool '{nome}' not implemented yet"
@@ -211,7 +211,7 @@ def executar(nome, args):
 
 @dataclass
 class PromptCortado:
-    """Eu sou o prompt pronto pra ler: os tokens em fila e, no meio deles, as imagens que o olho vai ler."""
+    """Prompt tokenizado: os tokens em ordem, as imagens por posição, o total de células no contexto e os pedaços do mtmd."""
 
     tokens: list
     imagens: dict
@@ -220,7 +220,7 @@ class PromptCortado:
 
 
 def _cortar_prompt(modelo, prompt, arquivos_das_imagens):
-    """Eu corto o prompt em texto e imagens; cada imagem ocupa as posições dela com uma marca tirada do hash da foto."""
+    """Divide o prompt em pedaços de texto e de imagem pelo mtmd; cada imagem ocupa as posições dela com uma marca tirada do hash da foto."""
     marcador = mtmd.mtmd_default_marker().decode()
     texto = prompt.replace(IMAGEM_NO_TEMPLATE, marcador).encode("utf-8")
     bitmaps = [_abrir_a_foto(modelo.olho, arquivo) for arquivo in arquivos_das_imagens]
@@ -253,7 +253,7 @@ def _cortar_prompt(modelo, prompt, arquivos_das_imagens):
 
 
 def _abrir_a_foto(olho, arquivo):
-    """Eu abro a foto pro olho e dou a ela uma identidade (o hash dos bytes), pra memória saber se é a mesma foto."""
+    """Abre a imagem como bitmap do mtmd com o sha256 dos bytes como id, pra memória reconhecer a mesma foto."""
     bitmap = mtmd.mtmd_helper_bitmap_init_from_file(olho, str(arquivo).encode(), False)
     if bitmap is None:
         raise ValueError(f"não consegui abrir a imagem {arquivo}")
@@ -263,26 +263,26 @@ def _abrir_a_foto(olho, arquivo):
 
 
 def _tokens_do_texto(pedaco):
-    """Eu devolvo os tokens de um pedaço de texto do mtmd."""
+    """Devolve os tokens de um pedaço de texto do mtmd."""
     quantos = ctypes.c_size_t()
     ponteiro = mtmd.mtmd_input_chunk_get_tokens_text(pedaco, ctypes.byref(quantos))
     return [ponteiro[i] for i in range(quantos.value)]
 
 
 def _arquivos_das_imagens(hist):
-    """Eu listo o arquivo de cada imagem do histórico, na ordem em que o template escreve."""
+    """Lista o arquivo de cada imagem do histórico, na ordem em que o template escreve."""
     return [parte["arquivo"] for mensagem in hist if isinstance(mensagem["content"], list)
             for parte in mensagem["content"] if parte.get("type") == "image"]
 
 
 def _posicoes(tokens, procurado):
-    """Eu devolvo as posições onde a sequência `procurado` começa dentro de `tokens`."""
+    """Devolve as posições onde a sequência `procurado` começa dentro de `tokens`."""
     tamanho = len(procurado)
     return [i for i in range(len(tokens) - tamanho + 1) if tokens[i:i + tamanho] == procurado]
 
 
 def _ler_ate(modelo, cortado, fim):
-    """Eu leio do ponto onde o modelo está até a posição `fim`: o texto com eval e cada imagem pelo olho."""
+    """Avalia o prompt da posição atual do modelo até `fim`: texto pelo eval, imagem pelo mmproj."""
     while modelo.n_tokens < fim:
         inicio = modelo.n_tokens
         if inicio in cortado.imagens:
@@ -293,7 +293,7 @@ def _ler_ate(modelo, cortado, fim):
 
 
 def _ler_imagem(modelo, pedaco):
-    """Eu passo a imagem pelo olho e escrevo o que ele viu na memória do modelo, no lugar dela no prompt."""
+    """Codifica a imagem pelo mmproj e escreve o resultado no contexto do modelo, na posição dela no prompt."""
     nova_posicao = llama_cpp.llama_pos(0)
     resultado = mtmd.mtmd_helper_eval_chunk_single(modelo.olho, modelo._ctx.ctx, pedaco, modelo.n_tokens, 0,
                                                    modelo.n_batch, False, ctypes.byref(nova_posicao))
@@ -303,7 +303,7 @@ def _ler_imagem(modelo, pedaco):
 
 
 def _gerar(modelo, tok, config, hist, pensando, gen_kw):
-    """Eu monto o prompt, retomo da maior memória salva, guardo os pontos reaproveitáveis e solto o texto."""
+    """Monta o prompt pelo chat template, retoma da maior memória salva, salva o começo fixo e o fim da pergunta e gera o texto em stream."""
     prompt = tok.apply_chat_template(hist, tools=config.pool, tokenize=False, add_generation_prompt=True,
                                      enable_thinking=pensando, preserve_thinking=False)
     cortado = _cortar_prompt(modelo, prompt, _arquivos_das_imagens(hist))
@@ -334,7 +334,7 @@ def _gerar(modelo, tok, config, hist, pensando, gen_kw):
 
 
 def _seguro(texto, marcas):
-    """Eu seguro o finalzinho do texto quando ele pode ser o começo de uma tag que ainda não chegou inteira."""
+    """Segura o final do texto quando ele pode ser o começo de uma tag que ainda não chegou inteira."""
     for n in range(min(len(texto), max(map(len, marcas)) - 1), 0, -1):
         if any(m.startswith(texto[-n:]) for m in marcas):
             return texto[:-n]
@@ -342,7 +342,7 @@ def _seguro(texto, marcas):
 
 
 def _partes(buf, pensando, final=False):
-    """Eu divido o texto gerado em (raciocínio, resposta, se o raciocínio fechou); do <tool_call> em diante nada aparece."""
+    """Divide o texto gerado em (raciocínio, resposta, se o raciocínio fechou); a resposta é cortada no <tool_call>."""
     guarda = (lambda t, _: t) if final else _seguro
     think, resto, fechou = "", buf, not pensando
     if pensando:
@@ -357,7 +357,7 @@ def _partes(buf, pensando, final=False):
 
 
 def _fases(modelo, tok, config, hist, pensando, gen_kw):
-    """Eu gero UMA vez e solto 'think' até o </think> e 'resp' depois dele; no fim devolvo o texto cru inteiro."""
+    """Gera uma vez e solta eventos 'think' até o </think> e 'resp' depois dele; no fim devolve o texto cru inteiro."""
     buf, ditos = "", {"think": 0, "resp": 0}
     for pedaco in chain(_gerar(modelo, tok, config, hist, pensando, gen_kw), [None]):
         buf += pedaco or ""
@@ -370,7 +370,7 @@ def _fases(modelo, tok, config, hist, pensando, gen_kw):
 
 
 def _falar(modelo, tok, config, hist, gen_kw):
-    """Eu penso e respondo na mesma geração; se o raciocínio estourar o max_tokens sem fechar, respondo sem pensar."""
+    """Gera com raciocínio; se o raciocínio estourar o max_tokens sem fechar, gera de novo sem raciocínio."""
     saida = yield from _fases(modelo, tok, config, hist, True, gen_kw)
     if not _partes(saida, True, final=True)[2]:
         saida = yield from _fases(modelo, tok, config, hist, False, gen_kw)
@@ -378,7 +378,7 @@ def _falar(modelo, tok, config, hist, gen_kw):
 
 
 def _como_mensagem(saida):
-    """Eu devolvo a fala da tool pro histórico do jeito que o Qwen3.8 lê: raciocínio no campo dele, não no texto."""
+    """Converte a saída do modelo em mensagem assistant do histórico, com o raciocínio em reasoning_content."""
     if FIM_THINK not in saida:
         return {"role": "assistant", "content": saida.strip()}
     think, resto = saida.split(FIM_THINK, 1)
@@ -386,7 +386,7 @@ def _como_mensagem(saida):
 
 
 def responder_eventos(modelo, tok, config, historico, **gen_kw):
-    """Eu rodo a conversa e solto eventos think/tool/resp/fim, pensando de novo em cima do resultado das tools."""
+    """Recebe o histórico da conversa e responde em eventos think/tool/resp/fim; se chamar tools, executa e responde de novo com o resultado."""
     gen_kw.pop("enable_thinking", None)
     saida = yield from _falar(modelo, tok, config, historico, gen_kw)
     chamadas = parse_tool_calls(saida)
@@ -402,7 +402,7 @@ def responder_eventos(modelo, tok, config, historico, **gen_kw):
 
 
 def responder(modelo, tok, config, historico, **gen_kw):
-    """Eu rodo o MESMO fluxo da interface e só junto o resultado: o que o benchmark mede é o que a interface entrega."""
+    """Roda o responder_eventos e junta o resultado em (resposta, passos das tools)."""
     resposta, passos = "", []
     for ev in responder_eventos(modelo, tok, config, historico, **gen_kw):
         if ev["t"] == "resp":
@@ -413,7 +413,7 @@ def responder(modelo, tok, config, historico, **gen_kw):
 
 
 def responder_stream(modelo, tok, config, historico, **gen_kw):
-    """Eu mostro o mesmo fluxo ao vivo no terminal: raciocínio em cinza, tool em amarelo e resposta em ciano."""
+    """Roda o responder_eventos imprimindo ao vivo no terminal (raciocínio em cinza, tool em amarelo, resposta em ciano) e devolve (resposta, passos)."""
     abre = {"think": "\033[2m💭 ", "resp": "\033[96mADA>\033[0m "}
     resposta, passos, atual = "", [], None
     for ev in responder_eventos(modelo, tok, config, historico, **gen_kw):
