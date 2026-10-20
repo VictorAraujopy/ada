@@ -14,7 +14,8 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 - **Acts on the Mac** — opens/closes apps, reads system status (battery/RAM/disk/Wi-Fi), controls music, volume, brightness and theme, takes screenshots, finds files, sets reminders & alarms
 - **Searches the web** — when the subject is current or she isn't sure of a fact (DuckDuckGo, no API key); a query with personal data is blocked before it leaves the Mac
 - **Chains tools** — decides on her own when to use a tool, and can run several in a single turn
-- **Phone app** — an Android app that talks to the Mac over a private network: streaming replies with the live reasoning and the tools she used, conversation history (SQLite) kept on the Mac
+- **Sees images** — send her a photo and she reads it: receipts, screenshots, signs, what's in the picture. The vision runs on the Mac too
+- **Phone app** — an Android app that talks to the Mac over a private network: streaming replies with the live reasoning and the tools she used, photos from the camera or the gallery, conversation history (SQLite) kept on the Mac
 - **The model runs 100% locally** — chat in the phone app or in the terminal
 
 ## By the numbers
@@ -23,7 +24,8 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 |---|---|
 | Model | Qwen3.8-27B with the personality merged in — one 3-bit GGUF, ~10 GB |
 | Personality | LoRA, rank 16, on every linear layer, merged into the weights |
-| Training data | 1,250 curated examples (+71 for validation) |
+| Training data | 1,315 curated examples (+71 for validation) |
+| Vision | Qwen3.8's own vision encoder (461M, F16) on the CPU · a photo of up to 1024 px is up to 1,024 tokens |
 | Runtime | Apple Silicon · llama.cpp on Metal · 16k context |
 | Cloud model / AI API | **none** — the only online call is the web search tool (DuckDuckGo) |
 
@@ -33,6 +35,7 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 - **Training** — LoRA+ in bf16 on a cloud GPU; then the LoRA is merged into the bf16 weights (in f32) and the model is re-quantized to 3-bit GGUF with the base quant's per-tensor bit allocation
 - **Inference** — llama.cpp with every layer on the GPU. 3-bit is the largest that fits in 16 GB without dumbing the model down, and only 16 of the 64 layers keep a KV cache (the rest are linear attention), so 16k tokens of context cost ~1 GB
 - **Prompt cache on disk** — the llama.cpp state is saved at two points of the prompt (system + tools, and the conversation up to the new message), and each reply resumes from the longest start already read instead of re-reading it all: ~24 s to the first token on the very first message, then under 1 s for a new conversation and ~2-3 s per later turn
+- **Vision** — Qwen3.8 is natively multimodal, but the GGUF ships the vision encoder as a separate file (the mmproj). It runs on the CPU, since the 27B already fills the GPU, and in F16: same output as the original BF16 weights, ~15x faster on the CPU. A photo takes its place in the prompt cache under a hash of the image, so a follow-up question about the same photo doesn't read it again
 - **Tools** — the model reasons, picks a tool, runs it, then answers — no hardcoded intent matching
 - **Evaluation** — each version is compared on an internal benchmark (kept out of the repo): answer keys scored by script, code run against hidden tests, conversations scored by two judges. Latest result below
 
@@ -42,6 +45,8 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 |---|---|
 | `1_ada/` | the core: brain runtime (`cerebro.py`), tool executors, grounding facts (out of the prompt for now, coming back as RAG) |
 | `3_chat/` | terminal chat, for debugging the brain raw |
+| [`ada-api`](https://github.com/VictorAraujopy/ada-api) | the API the phone talks to (FastAPI + SSE, its own repo) |
+| [`ada-app`](https://github.com/VictorAraujopy/ada-app) | the Android app (Expo / React Native, its own repo) |
 
 > The **personality dataset**, the **training pipeline** and the **model weights** are proprietary and **not** part of this repo — that's ADA's secret sauce.
 
@@ -62,7 +67,7 @@ Model and language changed together, so the gains measure both.
 
 ## Stack
 
-`Qwen3.8-27B` · `llama.cpp (GGUF)` · `LoRA / LoRA+` · `PEFT` · `FastAPI` · `SQLite` · Mac M4 (16 GB)
+`Qwen3.8-27B` · `llama.cpp (GGUF)` · `LoRA / LoRA+` · `PEFT` · `FastAPI` · `SQLite` · `Expo / React Native` · Mac M4 (16 GB)
 
 ## License
 
