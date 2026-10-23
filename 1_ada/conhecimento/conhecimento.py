@@ -5,6 +5,7 @@ import torch
 import requests 
 import sqlite3
 import json
+import re
 import time
 from sentence_transformers import SentenceTransformer
 import numpy as np
@@ -13,7 +14,7 @@ DB = Path(os.environ.get("ADA_DB") or PASTA_DOS_PROJETOS / "ada-api" / "dados" /
 model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B", device="cpu")
 BASE = Path(__file__).resolve().parent / "base" / "enciclopedia.db"
 
-def montar(historico, k_wiki=3, k_chats=2, corte=1000):
+def montar(historico, k_wiki=5, k_chats=2, corte=1000):
     """Devolve uma cópia do histórico com a última mensagem do user trocada pelo bloco do RAG: wiki, conversas passadas e a mensagem atual."""
     ultima = historico[-1]
     if ultima["role"] != "user":
@@ -252,9 +253,33 @@ def vetorizar_chat():
     conn.close()
    
             
-def vetorizar_wiki():
+def vetorizar_wiki(tamanho_do_pedaco=900):
     conn = sqlite3.connect(BASE)
     cur = conn.cursor()
+
+    longos = cur.execute("SELECT rowid, wiki, pagina, secao, texto FROM trechos WHERE length(texto) > ?",
+                         (tamanho_do_pedaco,)).fetchall()
+    for rowid, wiki, pagina, secao, texto in longos:
+        partes = []
+        for frase in re.split(r"(?<=[.!?])\s+|\n+", texto):
+            if len(frase) > tamanho_do_pedaco:
+                partes.extend(frase.split(" "))
+            else:
+                partes.append(frase)
+
+        pedacos = []
+        pedaco = ""
+        for parte in partes:
+            if pedaco and len(pedaco) + 1 + len(parte) > tamanho_do_pedaco:
+                pedacos.append(pedaco)
+                pedaco = ""
+            pedaco = f"{pedaco} {parte}".strip()
+        pedacos.append(pedaco)
+
+        cur.execute("DELETE FROM trechos WHERE rowid = ?", (rowid,))
+        for pedaco in pedacos:
+            cur.execute("INSERT INTO trechos (wiki, pagina, secao, texto) VALUES (?, ?, ?, ?)",
+                        (wiki, pagina, secao, pedaco))
     
     lt = cur.execute("SELECT rowid, wiki, pagina, secao, texto FROM trechos")
     ltuplas = lt.fetchall()
@@ -265,6 +290,7 @@ def vetorizar_wiki():
     model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
     vet = model.encode(ltextos, normalize_embeddings=True)
     
+    cur.execute("DROP TABLE IF EXISTS vetorizado")
     cur.execute("CREATE TABLE IF NOT EXISTS vetorizado(id INTEGER PRIMARY KEY, vetor BLOB)")
     
     for y, i in zip(ids, vet):
