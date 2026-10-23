@@ -22,7 +22,7 @@ def main():
     print("  ADA pronta. Fala com ela.  ('sair' pra encerrar)")
     print("=" * 56 + "\n")
 
-    historico = [{"role": "system", "content": config.systems["victor"]}]
+    historico = [{"role": "system", "content": config.system}]
 
     while True:
         try:

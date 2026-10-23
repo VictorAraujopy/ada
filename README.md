@@ -11,7 +11,8 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 ## What she does
 
 - **Talks with a personality of her own** — dry, direct, with real opinions and taste, baked into the weights (not prompted)
-- **Acts on the Mac** — opens/closes apps, reads system status (battery/RAM/disk/Wi-Fi), controls music, volume, brightness and theme, takes screenshots, finds files, sets reminders & alarms
+- **Acts on the Mac** — opens and closes apps, and lists the ones that are open
+- **Does the math exactly** — arithmetic goes through a calculator tool instead of being done in her head
 - **Searches the web** — when the subject is current or she isn't sure of a fact (DuckDuckGo, no API key); a query with personal data is blocked before it leaves the Mac
 - **Chains tools** — decides on her own when to use a tool, and can run several in a single turn
 - **Sees images** — send her a photo and she reads it: receipts, screenshots, signs, what's in the picture. The vision runs on the Mac too

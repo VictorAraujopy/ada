@@ -1,24 +1,279 @@
-"""Base de fatos confiáveis em base/*.md: fora do system prompt desde 17/10, volta como RAG."""
+"""RAG"""
 from pathlib import Path
+import os
+import torch
+import requests 
+import sqlite3
+import json
+import time
+from sentence_transformers import SentenceTransformer
+import numpy as np
+PASTA_DOS_PROJETOS = Path(__file__).resolve().parents[3]
+DB = Path(os.environ.get("ADA_DB") or PASTA_DOS_PROJETOS / "ada-api" / "dados" / "conversas.db")
+model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B", device="cpu")
+BASE = Path(__file__).resolve().parent / "base" / "enciclopedia.db"
 
-BASE = Path(__file__).resolve().parent / "base"
+def montar(historico, k_wiki=3, k_chats=2, corte=1000):
+    """Devolve uma cópia do histórico com a última mensagem do user trocada pelo bloco do RAG: wiki, conversas passadas e a mensagem atual."""
+    ultima = historico[-1]
+    if ultima["role"] != "user":
+        return list(historico)
+
+    pergunta = ultima["content"]
+    if isinstance(ultima["content"], list):
+        pergunta = ""
+        for parte in ultima["content"]:
+            if parte["type"] == "text":
+                pergunta = parte["text"]
+    if not pergunta:
+        return list(historico)
+
+    vetor_da_pergunta = model.encode(pergunta, prompt_name="query", normalize_embeddings=True)
+
+    trechos_da_wiki = []
+    conn = sqlite3.connect(f"file:{BASE}?mode=ro", uri=True)
+    for id_, nota in buscar(vetor_da_pergunta, matriz_w, id_w, k_wiki):
+        pagina, secao, texto = conn.execute("SELECT pagina, secao, texto FROM trechos WHERE rowid = ?", (id_,)).fetchone()
+        titulo = f"{pagina} / {secao}" if secao else pagina
+        trecho = f"{titulo}: {texto}"
+        trechos_da_wiki.append(trecho[:corte])
+    conn.close()
+
+    respostas_desta_conversa = {m["content"] for m in historico if m["role"] == "assistant"}
+    trechos_das_conversas = []
+    conn = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
+    for id_, nota in buscar(vetor_da_pergunta, matriz_c, id_c, k_chats + len(respostas_desta_conversa)):
+        linha_da_resposta = conn.execute("SELECT conversa, content FROM mensagens WHERE n = ?", (id_,)).fetchone()
+        if linha_da_resposta is None:
+            continue
+        conversa, resposta_antiga = linha_da_resposta
+        if resposta_antiga in respostas_desta_conversa:
+            continue
+        pergunta_antiga = conn.execute("SELECT content FROM mensagens WHERE conversa = ? AND n < ? AND role = 'user' "
+                                       "ORDER BY n DESC LIMIT 1", (conversa, id_)).fetchone()[0]
+        trecho = f"user: {pergunta_antiga}\nassistant: {resposta_antiga}"
+        trechos_das_conversas.append(trecho[:corte])
+        if len(trechos_das_conversas) == k_chats:
+            break
+    conn.close()
+
+    blocos = []
+    if trechos_da_wiki:
+        blocos.append("[Knowledge base — use only if relevant]\n" + "\n\n".join(trechos_da_wiki))
+    if trechos_das_conversas:
+        blocos.append("[Past conversations — use only if relevant]\n" + "\n\n".join(trechos_das_conversas))
+    if not blocos:
+        return list(historico)
+    blocos.append("[Current message]\n" + pergunta)
+    texto_montado = "\n\n".join(blocos)
+
+    if isinstance(ultima["content"], str):
+        nova_ultima = {**ultima, "content": texto_montado}
+    else:
+        partes_novas = []
+        for parte in ultima["content"]:
+            if parte["type"] == "text":
+                partes_novas.append({**parte, "text": texto_montado})
+            else:
+                partes_novas.append(parte)
+        nova_ultima = {**ultima, "content": partes_novas}
+    return historico[:-1] + [nova_ultima]
 
 
-def carregar_conhecimento():
-    """Lê todas as fichas da base e devolve um bloco pro system prompt (ou '' se vazia)."""
-    fichas = sorted(BASE.glob("*.md"))
-    if not fichas:
-        return ""
-    corpo = "\n\n---\n\n".join(f.read_text(encoding="utf-8").strip() for f in fichas)
-    return (
-        "## KNOWLEDGE BASE (reliable facts)\n"
-        "Use the facts below when they're relevant. Do NOT make things up beyond this: if something "
-        "isn't here and you're not sure, say you don't know. The rule works both ways: what IS "
-        "written here (or anywhere in this system) you KNOW for sure — using it isn't making "
-        "things up, and denying you know it is wrong.\n\n"
-        + corpo
-    )
+def buscar(vetor, matriz, id, k):
+    if matriz.shape[0] == 0:
+        return []
+
+    notas = matriz @ vetor
+
+    kp = np.argsort(notas)[::-1][:k]
+
+    resultado = []
+    for pos in kp:
+        resultado.append((id[pos], float(notas[pos])))
+    
+    return resultado
+    
+
+id_c = []
+matriz_c = None
+def carregar_conhecimento_chats():
+    global matriz_c, id_c
+        
+    conn = sqlite3.connect(DB)
+    cur = conn.cursor()
+    
+    cur.execute("CREATE TABLE IF NOT EXISTS vetorizado(id INTEGER PRIMARY KEY, vetor BLOB)")
+        
+    mi = cur.execute("SELECT id, vetor FROM vetorizado")
+    mit = mi.fetchall()
+        
+    id_c = []    
+    list_trans = []
+    for id_, mib in mit:  
+        id_c.append(id_)
+        list_trans.append(np.frombuffer(mib, dtype=np.float32))
+        
+        
+    if list_trans:
+        matriz_c = np.vstack(list_trans)
+    else:
+        matriz_c = np.empty((0, 1024), dtype=np.float32)  
+          
+    conn.close()
+    print(matriz_c.shape, len(id_c))
 
 
+matriz_w = None
+id_w = []
+def carregar_conhecimento_wiki():
+    global matriz_w, id_w
+    
+    conn = sqlite3.connect(BASE)
+    cur = conn.cursor()
+    
+    cur.execute("CREATE TABLE IF NOT EXISTS vetorizado(id INTEGER PRIMARY KEY, vetor BLOB)")
+
+    
+    mi = cur.execute("SELECT id, vetor FROM vetorizado")
+    mit = mi.fetchall()
+    
+    id_w = []
+    list_trans = []
+    for id_, mib in mit:
+        
+        id_w.append(id_)
+        list_trans.append(np.frombuffer(mib, dtype=np.float32))
+        
+    if list_trans:
+        matriz_w = np.vstack(list_trans)
+    else:
+        matriz_w = np.empty((0, 1024), dtype=np.float32)
+        
+    conn.close()
+    print(matriz_w.shape, len(id_w))
+    
+
+def vetorizar_pmensagem(id, pergunta, resposta):
+    global matriz_c, id_c, model
+    
+    if not pergunta or not resposta:
+        return
+    
+    conn = sqlite3.connect(DB)
+    cur = conn.cursor()
+    
+    juntando =(f"user: {pergunta} assistant: {resposta}")
+    
+    vet = model.encode(juntando, normalize_embeddings=True)
+    
+    matriz_c = np.vstack([matriz_c, vet])
+    id_c.append(id)
+    
+    cur.execute("INSERT OR REPLACE INTO vetorizado (id, vetor) VALUES (?, ?)",
+                (id, vet.tobytes()),)
+    
+    conn.commit()
+    conn.close()
+    
+
+
+def guardar(conversa, historico, meta):
+    """Grava no conversas.db a pergunta (historico[-2], user) e a resposta (historico[-1], assistant), numa transação só."""
+    pergunta = historico[-2]
+    resposta = historico[-1]
+
+    texto_da_pergunta = pergunta["content"]
+    nome_da_foto = None
+    if isinstance(pergunta["content"], list):
+        for parte in pergunta["content"]:
+            if parte["type"] == "text":
+                texto_da_pergunta = parte["text"]
+            elif parte["type"] == "image":
+                nome_da_foto = Path(parte["arquivo"]).name
+
+    agora = time.time()
+    conn = sqlite3.connect(DB)
+    cur = conn.cursor()
+
+    cur.execute("INSERT INTO mensagens (conversa, role, content, meta, criada, foto) VALUES (?,?,?,?,?,?)",
+                (conversa, "user", texto_da_pergunta, None, agora, nome_da_foto))
+    cur.execute("INSERT INTO mensagens (conversa, role, content, meta, criada, foto) VALUES (?,?,?,?,?,?)",
+                (conversa, "assistant", resposta["content"], json.dumps(meta, ensure_ascii=False), agora, None))
+    
+    id = cur.lastrowid
+    
+    cur.execute("UPDATE conversas SET atualizada=? WHERE id=?", (agora, conversa))
+
+    conn.commit()
+    conn.close()
+    
+    vetorizar_pmensagem(id, texto_da_pergunta, resposta["content"])
+
+def vetorizar_chat():
+    conn = sqlite3.connect(DB)
+    cur = conn.cursor()
+    
+    lm = cur.execute("SELECT n, conversa, role, content FROM mensagens ORDER BY conversa, n")
+    lmt = lm.fetchall()
+    
+    lmtextos = []
+    ids = []
+    pergunta = None
+    conversa_ant = None
+    
+    for n, conversa, role, content in lmt:
+        
+        if conversa_ant != conversa:
+            pergunta = None
+            
+        conversa_ant = conversa
+        
+        if not content: continue
+        
+        elif role == "user":
+            pergunta = content
+        
+        elif role == "assistant" and pergunta:
+            lmtextos.append(f"user: {pergunta} assistant: {content}")
+            ids.append(n)
+            pergunta = None
+    
+    model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
+    vet = model.encode(lmtextos, normalize_embeddings=True)
+    
+    cur.execute("CREATE TABLE IF NOT EXISTS vetorizado(id INTEGER PRIMARY KEY, vetor BLOB)")
+        
+    for y, i in zip(ids, vet):
+        cur.execute("INSERT OR REPLACE INTO vetorizado(id, vetor) VALUES(?, ?)",
+                    (y, i.tobytes()),)
+        
+    conn.commit()
+    conn.close()
+   
+            
+def vetorizar_wiki():
+    conn = sqlite3.connect(BASE)
+    cur = conn.cursor()
+    
+    lt = cur.execute("SELECT rowid, wiki, pagina, secao, texto FROM trechos")
+    ltuplas = lt.fetchall()
+    ltextos = [" ".join(str(campo) for campo in linhas[1:]) for linhas in ltuplas]
+    ids = [linha[0] for linha in ltuplas]
+    
+    #carregar modelo
+    model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
+    vet = model.encode(ltextos, normalize_embeddings=True)
+    
+    cur.execute("CREATE TABLE IF NOT EXISTS vetorizado(id INTEGER PRIMARY KEY, vetor BLOB)")
+    
+    for y, i in zip(ids, vet):
+        cur.execute("INSERT OR REPLACE INTO vetorizado(id, vetor) VALUES(?, ?)",
+                    (y, i.tobytes()),)
+    
+    conn.commit()
+    conn.close()
+        
 if __name__ == "__main__":
-    print(carregar_conhecimento())
+    carregar_conhecimento_wiki()
+    

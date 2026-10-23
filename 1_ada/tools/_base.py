@@ -1,4 +1,4 @@
-"""O que as tools usam pra falar com o Mac: shell, AppleScript e o player de música aberto."""
+"""O que as tools usam pra falar com o Mac: shell e AppleScript."""
 import subprocess
 
 
@@ -14,9 +14,3 @@ def sh(cmd, timeout=10):
 def osa(script):
     """Atalho pra rodar um AppleScript (osascript)."""
     return sh(["osascript", "-e", script])
-
-
-def player():
-    """Diz qual app de musica usar: Spotify se estiver aberto, senao Music."""
-    aberto = osa('tell application "System Events" to (name of processes) contains "Spotify"')
-    return "Spotify" if aberto == "true" else "Music"

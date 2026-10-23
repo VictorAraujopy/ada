@@ -19,6 +19,8 @@ from transformers import AutoTokenizer
 
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ / "1_ada"))
+
+from conhecimento.conhecimento import carregar_conhecimento_chats, carregar_conhecimento_wiki, montar
 from tools import EXECUTORES
 
 FIM_THINK, TOOL = "</think>", "<tool_call>"
@@ -28,7 +30,7 @@ IMAGEM_NO_TEMPLATE = "<|vision_start|><|image_pad|><|vision_end|>"
 
 @dataclass(frozen=True)
 class Config:
-    """Configuração de um processo: modelo, mmproj, contexto, sampling, tools e o system de cada usuário."""
+    """Configuração de um processo: modelo, mmproj, contexto, sampling, tools e o system."""
 
     adapter: str
     pasta_adapter: Path | None
@@ -42,15 +44,14 @@ class Config:
     n_ubatch: int
     geracao: dict
     pool: list
-    systems: dict
+    system: str
     pasta_memorias: Path
     maximo_memorias: int
 
 
 def configurar():
-    """Monta o Config a partir do ADA_ADAPTER, do tools_pool.json e das personas."""
+    """Monta o Config a partir do ADA_ADAPTER e do tools_pool.json."""
     nome_adapter = os.environ.get("ADA_ADAPTER", "ada_1_0_27b")
-    persona_visitante = "Current user: visitor (not Victor, not your creator). Be kind, don't make things up."
     return Config(
         adapter=nome_adapter or "qwen3.8_27b_cru",
         pasta_adapter=RAIZ / "_modelo" / nome_adapter if nome_adapter else None,
@@ -65,23 +66,10 @@ def configurar():
         geracao=dict(max_tokens=4096, temperature=0.7, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=0.0,
                      repeat_penalty=1.0, stop=["<|im_end|>"]),
         pool=json.loads((RAIZ / "1_ada" / "tools_pool.json").read_text(encoding="utf-8")),
-        systems={
-            "victor": "Current user: Victor, your creator. Don't make things up.",
-            "convidado": _persona_do_convidado(persona_visitante),
-            "visitante": persona_visitante,
-        },
+        system="Current user: Victor, your creator. Don't make things up.",
         pasta_memorias=Path.home() / "Library" / "Caches" / "ada" / "memorias",
         maximo_memorias=6,
     )
-
-
-def _persona_do_convidado(padrao):
-    """Devolve a PERSONA_CONVIDADO do personas_local.py (fora do git), ou `padrao` se o arquivo não existir."""
-    try:
-        from personas_local import PERSONA_CONVIDADO
-    except ImportError:
-        return padrao
-    return PERSONA_CONVIDADO
 
 
 class Modelo(Llama):
@@ -150,7 +138,7 @@ def _apagar_memorias_de_processos_mortos(raiz):
 
 
 def carregar(config=None):
-    """Abre o GGUF com todas as camadas na GPU, o mmproj e o tokenizer do Qwen; devolve (modelo, tokenizer, config)."""
+    """Abre o GGUF com todas as camadas na GPU, o mmproj, o tokenizer do Qwen e os vetores do RAG (wiki e conversas); devolve (modelo, tokenizer, config)."""
     config = config or configurar()
     gguf, lora = _arquivos_do_modelo(config)
     modelo = Modelo(config.pasta_memorias, config.maximo_memorias, model_path=gguf, n_ctx=config.n_ctx,
@@ -159,6 +147,8 @@ def carregar(config=None):
     modelo.olho = _abrir_o_olho(modelo, config)
     atexit.register(mtmd.mtmd_free, modelo.olho)
     tok = AutoTokenizer.from_pretrained(config.tokenizer)
+    carregar_conhecimento_wiki()
+    carregar_conhecimento_chats()
     return modelo, tok, config
 
 
@@ -303,7 +293,7 @@ def _ler_imagem(modelo, pedaco):
 
 
 def _gerar(modelo, tok, config, hist, pensando, gen_kw):
-    """Monta o prompt pelo chat template, retoma da maior memória salva, salva o começo fixo e o fim da pergunta e gera o texto em stream."""
+    """Monta o prompt pelo chat template, retoma da maior memória salva, salva o começo fixo, o começo e o fim da pergunta e gera o texto em stream."""
     prompt = tok.apply_chat_template(hist, tools=config.pool, tokenize=False, add_generation_prompt=True,
                                      enable_thinking=pensando, preserve_thinking=False)
     cortado = _cortar_prompt(modelo, prompt, _arquivos_das_imagens(hist))
@@ -311,8 +301,9 @@ def _gerar(modelo, tok, config, hist, pensando, gen_kw):
         inicio_da_conversa = modelo.tokenize(INICIO_DA_CONVERSA.encode(), add_bos=False, special=True)
         inicio_da_resposta = modelo.tokenize(INICIO_DA_RESPOSTA.encode(), add_bos=False, special=True)
         comeco_fixo = _posicoes(cortado.tokens, inicio_da_conversa)[:1]
+        antes_da_pergunta = _posicoes(cortado.tokens, inicio_da_conversa)[-1:]
         ate_a_pergunta = _posicoes(cortado.tokens, inicio_da_resposta)[-1:]
-        paradas = comeco_fixo + ate_a_pergunta
+        paradas = comeco_fixo + antes_da_pergunta + ate_a_pergunta
 
         lidos = modelo.retomar(cortado.tokens)
         for parada in paradas:
@@ -388,7 +379,8 @@ def _como_mensagem(saida):
 def responder_eventos(modelo, tok, config, historico, **gen_kw):
     """Recebe o histórico da conversa e responde em eventos think/tool/resp/fim; se chamar tools, executa e responde de novo com o resultado."""
     gen_kw.pop("enable_thinking", None)
-    saida = yield from _falar(modelo, tok, config, historico, gen_kw)
+    rhis = montar(historico)
+    saida = yield from _falar(modelo, tok, config, rhis, gen_kw)
     chamadas = parse_tool_calls(saida)
     if chamadas:
         respostas = []
@@ -396,7 +388,7 @@ def responder_eventos(modelo, tok, config, historico, **gen_kw):
             resultado = executar(nome, args)
             yield {"t": "tool", "nome": nome, "args": args, "res": str(resultado)}
             respostas.append(f"<tool_response>\n{resultado}\n</tool_response>")
-        hist2 = historico + [_como_mensagem(saida), {"role": "user", "content": "\n".join(respostas)}]
+        hist2 = rhis + [_como_mensagem(saida), {"role": "user", "content": "\n".join(respostas)}]
         yield from _falar(modelo, tok, config, hist2, gen_kw)
     yield {"t": "fim"}
 

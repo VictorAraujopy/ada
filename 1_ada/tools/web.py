@@ -7,7 +7,7 @@ from ddgs.exceptions import DDGSException
 
 NOMES_PRIVADOS = []
 try:
-    from personas_local import NOMES_PRIVADOS
+    from privado_local import NOMES_PRIVADOS
 except ImportError:
     pass
 
