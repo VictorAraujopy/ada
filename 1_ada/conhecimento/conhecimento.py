@@ -14,7 +14,7 @@ DB = Path(os.environ.get("ADA_DB") or PASTA_DOS_PROJETOS / "ada-api" / "dados" /
 model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B", device="cpu")
 BASE = Path(__file__).resolve().parent / "base" / "enciclopedia.db"
 
-def montar(historico, k_wiki=5, k_chats=2, corte=1000, nota_minima_wiki=0.6):
+def montar(historico, k_wiki=5, k_chats=2, corte=1000, nota_minima_wiki=0.55):
     """Devolve uma cópia do histórico com a última mensagem do user trocada pelo bloco do RAG: wiki, conversas passadas e a mensagem atual."""
     ultima = historico[-1]
     if ultima["role"] != "user":
