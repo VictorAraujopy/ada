@@ -14,6 +14,7 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 - **Acts on the Mac** — opens and closes apps, and lists the ones that are open
 - **Does the math exactly** — arithmetic goes through a calculator tool instead of being done in her head
 - **Searches the web** — when the subject is current or she isn't sure of a fact (DuckDuckGo, no API key); a query with personal data is blocked before it leaves the Mac
+- **Knows Resident Evil and The Walking Dead, and remembers past chats** — before answering, she searches a local encyclopedia (the two Fandom wikis, ~221k passages) and her own past conversations, and the closest passages go into the message (RAG)
 - **Chains tools** — decides on her own when to use a tool, and can run several in a single turn
 - **Sees images** — send her a photo and she reads it: receipts, screenshots, signs, what's in the picture. The vision runs on the Mac too
 - **Phone app** — an Android app that talks to the Mac over a private network: streaming replies with the live reasoning and the tools she used, photos from the camera or the gallery, conversation history (SQLite) kept on the Mac
@@ -27,6 +28,7 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 | Personality | LoRA, rank 16, on every linear layer, merged into the weights |
 | Training data | 1,315 curated examples (+71 for validation) |
 | Vision | Qwen3.8's own vision encoder (461M, F16) on the CPU · a photo of up to 1024 px is up to 1,024 tokens |
+| Knowledge (RAG) | Qwen3-Embedding-0.6B (1024-dim) · ~221k wiki passages (~22M tokens) + past conversations · 5 wiki + 2 conversation passages per message |
 | Runtime | Apple Silicon · llama.cpp on Metal · 16k context |
 | Cloud model / AI API | **none** — the only online call is the web search tool (DuckDuckGo) |
 
@@ -35,8 +37,9 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 - **Brain** — Qwen3.8-27B with the personality LoRA merged into the weights: one model file, no adapter at runtime
 - **Training** — LoRA+ in bf16 on a cloud GPU; then the LoRA is merged into the bf16 weights (in f32) and the model is re-quantized to 3-bit GGUF with the base quant's per-tensor bit allocation
 - **Inference** — llama.cpp with every layer on the GPU. 3-bit is the largest that fits in 16 GB without dumbing the model down, and only 16 of the 64 layers keep a KV cache (the rest are linear attention), so 16k tokens of context cost ~1 GB
-- **Prompt cache on disk** — the llama.cpp state is saved at two points of the prompt (system + tools, and the conversation up to the new message), and each reply resumes from the longest start already read instead of re-reading it all: ~24 s to the first token on the very first message, then under 1 s for a new conversation and ~2-3 s per later turn
+- **Prompt cache on disk** — the llama.cpp state is saved at three points of the prompt (system + tools, the conversation up to the new message, and the new message itself), and each reply resumes from the longest start already read instead of re-reading it all. The RAG passages change with every message, so they ride inside the new message: each reply re-reads only the last exchange and the new message
 - **Vision** — Qwen3.8 is natively multimodal, but the GGUF ships the vision encoder as a separate file (the mmproj). It runs on the CPU, since the 27B already fills the GPU, and in F16: same output as the original BF16 weights, ~15x faster on the CPU. A photo takes its place in the prompt cache under a hash of the image, so a follow-up question about the same photo doesn't read it again
+- **RAG** — the Resident Evil and The Walking Dead wikis live in a local SQLite database, split at sentence boundaries into passages of up to 900 characters, the size that goes into the prompt. Each passage has a Qwen3-Embedding-0.6B vector, embedded once on a cloud GPU; at runtime the question is embedded on the Mac's CPU and compared against all of them. The 5 closest passages, plus the 2 closest exchanges from past conversations (never the current one), go into the last user message, never into the system prompt
 - **Tools** — the model reasons, picks a tool, runs it, then answers — no hardcoded intent matching
 - **Evaluation** — each version is compared on an internal benchmark (kept out of the repo): answer keys scored by script, code run against hidden tests, conversations scored by two judges. Latest result below
 
@@ -44,7 +47,7 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 
 | Path | What |
 |---|---|
-| `1_ada/` | the core: brain runtime (`cerebro.py`), tool executors, grounding facts (out of the prompt for now, coming back as RAG) |
+| `1_ada/` | the core: brain runtime (`cerebro.py`), tool executors, RAG (`conhecimento/`: search over the local encyclopedia and past conversations) |
 | `3_chat/` | terminal chat, for debugging the brain raw |
 | [`ada-api`](https://github.com/VictorAraujopy/ada-api) | the API the phone talks to (FastAPI + SSE, its own repo) |
 | [`ada-app`](https://github.com/VictorAraujopy/ada-app) | the Android app (Expo / React Native, its own repo) |
@@ -68,7 +71,7 @@ Model and language changed together, so the gains measure both.
 
 ## Stack
 
-`Qwen3.8-27B` · `llama.cpp (GGUF)` · `LoRA / LoRA+` · `PEFT` · `FastAPI` · `SQLite` · `Expo / React Native` · Mac M4 (16 GB)
+`Qwen3.8-27B` · `llama.cpp (GGUF)` · `Qwen3-Embedding-0.6B` · `sentence-transformers` · `LoRA / LoRA+` · `PEFT` · `FastAPI` · `SQLite` · `Expo / React Native` · Mac M4 (16 GB)
 
 ## License
 
