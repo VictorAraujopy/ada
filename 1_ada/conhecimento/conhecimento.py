@@ -14,7 +14,7 @@ DB = Path(os.environ.get("ADA_DB") or PASTA_DOS_PROJETOS / "ada-api" / "dados" /
 model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B", device="cpu")
 BASE = Path(__file__).resolve().parent / "base" / "enciclopedia.db"
 
-def montar(historico, k_wiki=5, k_chats=2, corte=1000):
+def montar(historico, k_wiki=5, k_chats=2, corte=1000, nota_minima_wiki=0.6):
     """Devolve uma cópia do histórico com a última mensagem do user trocada pelo bloco do RAG: wiki, conversas passadas e a mensagem atual."""
     ultima = historico[-1]
     if ultima["role"] != "user":
@@ -34,6 +34,8 @@ def montar(historico, k_wiki=5, k_chats=2, corte=1000):
     trechos_da_wiki = []
     conn = sqlite3.connect(f"file:{BASE}?mode=ro", uri=True)
     for id_, nota in buscar(vetor_da_pergunta, matriz_w, id_w, k_wiki):
+        if nota < nota_minima_wiki:
+            continue
         pagina, secao, texto = conn.execute("SELECT pagina, secao, texto FROM trechos WHERE rowid = ?", (id_,)).fetchone()
         titulo = f"{pagina} / {secao}" if secao else pagina
         trecho = f"{titulo}: {texto}"

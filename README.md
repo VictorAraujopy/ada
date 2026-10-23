@@ -28,7 +28,7 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 | Personality | LoRA, rank 16, on every linear layer, merged into the weights |
 | Training data | 1,315 curated examples (+71 for validation) |
 | Vision | Qwen3.8's own vision encoder (461M, F16) on the CPU · a photo of up to 1024 px is up to 1,024 tokens |
-| Knowledge (RAG) | Qwen3-Embedding-0.6B (1024-dim) · ~221k wiki passages (~22M tokens) + past conversations · 5 wiki + 2 conversation passages per message |
+| Knowledge (RAG) | Qwen3-Embedding-0.6B (1024-dim) · ~221k wiki passages (~22M tokens) + past conversations · up to 5 wiki passages (similarity ≥ 0.6) + 2 conversation passages per message |
 | Runtime | Apple Silicon · llama.cpp on Metal · 16k context |
 | Cloud model / AI API | **none** — the only online call is the web search tool (DuckDuckGo) |
 
@@ -39,7 +39,7 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 - **Inference** — llama.cpp with every layer on the GPU. 3-bit is the largest that fits in 16 GB without dumbing the model down, and only 16 of the 64 layers keep a KV cache (the rest are linear attention), so 16k tokens of context cost ~1 GB
 - **Prompt cache on disk** — the llama.cpp state is saved at three points of the prompt (system + tools, the conversation up to the new message, and the new message itself), and each reply resumes from the longest start already read instead of re-reading it all. The RAG passages change with every message, so they ride inside the new message: each reply re-reads only the last exchange and the new message
 - **Vision** — Qwen3.8 is natively multimodal, but the GGUF ships the vision encoder as a separate file (the mmproj). It runs on the CPU, since the 27B already fills the GPU, and in F16: same output as the original BF16 weights, ~15x faster on the CPU. A photo takes its place in the prompt cache under a hash of the image, so a follow-up question about the same photo doesn't read it again
-- **RAG** — the Resident Evil and The Walking Dead wikis live in a local SQLite database, split at sentence boundaries into passages of up to 900 characters, the size that goes into the prompt. Each passage has a Qwen3-Embedding-0.6B vector, embedded once on a cloud GPU; at runtime the question is embedded on the Mac's CPU and compared against all of them. The 5 closest passages, plus the 2 closest exchanges from past conversations (never the current one), go into the last user message, never into the system prompt
+- **RAG** — the Resident Evil and The Walking Dead wikis live in a local SQLite database, split at sentence boundaries into passages of up to 900 characters, the size that goes into the prompt. Each passage has a Qwen3-Embedding-0.6B vector, embedded once on a cloud GPU; at runtime the question is embedded on the Mac's CPU and compared against all of them. Up to 5 of the closest passages (only those with a similarity of at least 0.6, so app commands and small talk get none), plus the 2 closest exchanges from past conversations (never the current one), go into the last user message, never into the system prompt
 - **Tools** — the model reasons, picks a tool, runs it, then answers — no hardcoded intent matching
 - **Evaluation** — each version is compared on an internal benchmark (kept out of the repo): answer keys scored by script, code run against hidden tests, conversations scored by two judges. Latest result below
 
