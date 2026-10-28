@@ -14,7 +14,8 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 - **Acts on the Mac** — opens and closes apps, and lists the ones that are open
 - **Does the math exactly** — arithmetic goes through a calculator tool instead of being done in her head
 - **Searches the web** — when the subject is current or she isn't sure of a fact (DuckDuckGo, no API key); a query with personal data is blocked before it leaves the Mac
-- **Knows Resident Evil and The Walking Dead, and remembers past chats** — before answering, she searches a local encyclopedia (the two Fandom wikis, ~221k passages) and her own past conversations, and the closest passages go into the message (RAG)
+- **Knows Resident Evil and The Walking Dead** — for any fact about them she searches a local copy of the two Fandom wikis (~221k passages) through a tool
+- **Remembers past chats** — before answering, the closest exchanges from her past conversations go into the message (RAG)
 - **Chains tools** — decides on her own when to use a tool, and can run several in a single turn
 - **Sees images** — send her a photo and she reads it: receipts, screenshots, signs, what's in the picture. The vision runs on the Mac too
 - **Talks by voice** — hold the phone's side button (she's the Android assistant) and talk: the Mac transcribes each phrase, and she answers out loud in an on-device voice. Saying *enviar* sends the message, *apagar* clears it, and any chat can turn into a voice conversation
@@ -30,7 +31,8 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 | Training data | 1,612 curated examples (+71 for validation) |
 | Vision | Qwen3.8's own vision encoder (461M, F16) on the CPU · a photo of up to 1024 px is up to 1,024 tokens |
 | Voice | Whisper large-v3-turbo (int8) on the Mac's CPU · ~4.3 s per phrase · 5.5% word error rate on 14 real phone recordings (the phone's built-in offline recognizer: 38%) · replies spoken by an on-device Android voice |
-| Knowledge (RAG) | Qwen3-Embedding-4B (2560-dim) for the wikis, Qwen3-Embedding-0.6B (1024-dim) for past conversations and as the fallback · ~221k wiki passages (~22M tokens) · up to 5 wiki passages + 2 conversation passages per message, each with similarity ≥ 0.60 |
+| Memory (RAG) | Qwen3-Embedding-4B (2560-dim) · up to 2 exchanges from past conversations per message, each with similarity ≥ 0.60 |
+| Wikis | ~221k passages (~22M tokens) in SQLite FTS5 · bm25 search in milliseconds · 5 passages per search |
 | Runtime | Apple Silicon · llama.cpp on Metal · 16k context |
 | Cloud model / AI API | **none** — online, only the web search tool (DuckDuckGo) and Hugging Face for the model downloads |
 
@@ -41,7 +43,8 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 - **Inference** — llama.cpp with every layer on the GPU. 3-bit is the largest that fits in 16 GB without dumbing the model down, and only 16 of the 64 layers keep a KV cache (the rest are linear attention), so 16k tokens of context cost ~1 GB
 - **Prompt cache on disk** — the llama.cpp state is saved at three points of the prompt (system + tools, the conversation up to the new message, and the new message itself), and each reply resumes from the longest start already read instead of re-reading it all. The RAG passages change with every message, so they ride inside the new message: each reply re-reads only the last exchange and the new message
 - **Vision** — Qwen3.8 is natively multimodal, but the GGUF ships the vision encoder as a separate file (the mmproj). It runs on the CPU, since the 27B already fills the GPU, and in F16: same output as the original BF16 weights, ~15x faster on the CPU. A photo takes its place in the prompt cache under a hash of the image, so a follow-up question about the same photo doesn't read it again
-- **RAG** — the Resident Evil and The Walking Dead wikis live in a local SQLite database, split at sentence boundaries into passages of up to 900 characters, the size that goes into the prompt. Each passage has a Qwen3-Embedding-4B vector (stored in float16), embedded once on a cloud GPU; at runtime the question is embedded by the same model on a second machine on the private network (a PC, on its CPU) and compared against all of them on the Mac. If that machine is off, the search falls back to Qwen3-Embedding-0.6B vectors, with the question embedded on the Mac's CPU. Up to 5 of the closest passages and up to 2 exchanges from past conversations (never the current one) go into the last user message, never into the system prompt; each needs a similarity of at least 0.60, so most app commands and small talk get none
+- **RAG** — every question/answer pair of past conversations has a Qwen3-Embedding-4B vector, embedded on a second machine on the private network (a PC, on its CPU). Each new message is embedded there together with her previous reply, so a follow-up keeps the subject, and compared against all pairs on the Mac. Up to 2 exchanges from other conversations go into the last user message, never into the system prompt; each needs a similarity of at least 0.60, so app commands and small talk get none
+- **Wiki search** — the Resident Evil and The Walking Dead wikis live in a local SQLite database, split at sentence boundaries into passages of up to 900 characters, with a full-text index (FTS5, Porter stemming). The `pesquisar_wiki` tool ranks the passages by bm25, with the page title and the section title weighing 10x the text, and returns the top 5; she calls it for any fact about the two franchises
 - **Voice** — the phone cuts the speech at pauses and sends each chunk (16 kHz WAV) to the Mac, where Whisper large-v3-turbo transcribes it on the CPU (the GPU is already full with the 27B). A short context prompt teaches it the spelling of "Ada", the Resident Evil names and the two command words, which are Portuguese on purpose (*enviar* = send, *apagar* = clear): no English synonym slips into a sentence by accident. The reply is spoken sentence by sentence as it streams, by the phone's own offline voice; the audio is never stored
 - **Tools** — the model reasons, picks a tool, runs it, then answers — no hardcoded intent matching
 - **Evaluation** — each version is compared on an internal benchmark (kept out of the repo): answer keys scored by script, code run against hidden tests, conversations scored by two judges. Latest result below
@@ -50,7 +53,7 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 
 | Path | What |
 |---|---|
-| `1_ada/` | the core: brain runtime (`cerebro.py`), tool executors, RAG (`conhecimento/`: search over the local encyclopedia and past conversations), the ear (`voz/`: Whisper transcription for the phone's voice) |
+| `1_ada/` | the core: brain runtime (`cerebro.py`), tool executors, RAG (`conhecimento/`: search over past conversations, and the local wiki database the wiki tool reads), the ear (`voz/`: Whisper transcription for the phone's voice) |
 | `3_chat/` | terminal chat, for debugging the brain raw |
 | [`ada-api`](https://github.com/VictorAraujopy/ada-api) | the API the phone talks to (FastAPI + SSE, its own repo) |
 | [`ada-app`](https://github.com/VictorAraujopy/ada-app) | the Android app (Expo / React Native, its own repo) |
@@ -74,7 +77,7 @@ Model and language changed together, so the gains measure both.
 
 ## Stack
 
-`Qwen3.8-27B` · `llama.cpp (GGUF)` · `Qwen3-Embedding-4B / 0.6B` · `sentence-transformers` · `faster-whisper (Whisper large-v3-turbo)` · `LoRA / LoRA+` · `PEFT` · `FastAPI` · `SQLite` · `Expo / React Native` · Mac M4 (16 GB)
+`Qwen3.8-27B` · `llama.cpp (GGUF)` · `Qwen3-Embedding-4B` · `faster-whisper (Whisper large-v3-turbo)` · `LoRA / LoRA+` · `PEFT` · `FastAPI` · `SQLite (FTS5)` · `Expo / React Native` · Mac M4 (16 GB)
 
 ## License
 

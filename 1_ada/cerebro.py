@@ -21,7 +21,7 @@ from transformers import AutoTokenizer
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ / "1_ada"))
 
-from conhecimento.conhecimento import carregar_conhecimento_chats, carregar_conhecimento_wiki, montar
+from conhecimento.conhecimento import carregar_conhecimento_chats, montar
 from tools import EXECUTORES
 
 ENDERECO_DO_PC = None
@@ -152,7 +152,7 @@ def _apagar_memorias_de_processos_mortos(raiz):
 
 
 def carregar(config=None):
-    """Abre o GGUF com todas as camadas na GPU (dividido com o PC quando ele responde), o mmproj, o tokenizer do Qwen e os vetores do RAG (wiki e conversas); devolve (modelo, tokenizer, config)."""
+    """Abre o GGUF com todas as camadas na GPU (dividido com o PC quando ele responde), o mmproj, o tokenizer do Qwen e os vetores do RAG das conversas; devolve (modelo, tokenizer, config)."""
     config = _com_o_pc_se_der(config or configurar())
     gguf, lora = _arquivos_do_modelo(config)
     divisao_entre_pc_e_mac = None
@@ -165,7 +165,6 @@ def carregar(config=None):
     modelo.olho = _abrir_o_olho(modelo, config)
     atexit.register(mtmd.mtmd_free, modelo.olho)
     tok = AutoTokenizer.from_pretrained(config.tokenizer)
-    carregar_conhecimento_wiki()
     carregar_conhecimento_chats()
     return modelo, tok, config
 
