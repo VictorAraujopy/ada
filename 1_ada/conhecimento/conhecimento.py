@@ -13,8 +13,29 @@ PASTA_DOS_PROJETOS = Path(__file__).resolve().parents[3]
 DB = Path(os.environ.get("ADA_DB") or PASTA_DOS_PROJETOS / "ada-api" / "dados" / "conversas.db")
 model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B", device="cpu")
 BASE = Path(__file__).resolve().parent / "base" / "enciclopedia.db"
+ENDERECO_DO_EMBEDDING, CHAVE_DO_EMBEDDING = None, None
+try:
+    from privado_local import ENDERECO_DO_EMBEDDING, CHAVE_DO_EMBEDDING
+except ImportError:
+    pass
+PREFIXO_DA_PERGUNTA = "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:"
 
-def montar(historico, k_wiki=5, k_chats=2, corte=1000, nota_minima_wiki=0.55):
+
+def vetor_no_pc(pergunta):
+    """Pede ao servidor do PC (Qwen3-Embedding-4B) o vetor da pergunta; devolve None se o PC não responder."""
+    if not ENDERECO_DO_EMBEDDING:
+        return None
+    try:
+        resposta = requests.post(f"http://{ENDERECO_DO_EMBEDDING}/v1/embeddings",
+                                 json={"input": PREFIXO_DA_PERGUNTA + pergunta},
+                                 headers={"Authorization": f"Bearer {CHAVE_DO_EMBEDDING}"}, timeout=10)
+        resposta.raise_for_status()
+    except requests.RequestException:
+        return None
+    return np.array(resposta.json()["data"][0]["embedding"], dtype=np.float32)
+
+def montar(historico, k_wiki=5, k_chats=2, corte=1000, nota_minima_wiki=0.55, nota_minima_wiki_4b=0.60,
+           nota_minima_chats=0.60):
     """Devolve uma cópia do histórico com a última mensagem do user trocada pelo bloco do RAG: wiki, conversas passadas e a mensagem atual."""
     ultima = historico[-1]
     if ultima["role"] != "user":
@@ -30,10 +51,14 @@ def montar(historico, k_wiki=5, k_chats=2, corte=1000, nota_minima_wiki=0.55):
         return list(historico)
 
     vetor_da_pergunta = model.encode(pergunta, prompt_name="query", normalize_embeddings=True)
+    vetor_da_wiki = vetor_da_pergunta
+    if modelo_da_wiki == "4B":
+        vetor_da_wiki = vetor_no_pc(pergunta)
+        nota_minima_wiki = nota_minima_wiki_4b
 
     trechos_da_wiki = []
     conn = sqlite3.connect(f"file:{BASE}?mode=ro", uri=True)
-    for id_, nota in buscar(vetor_da_pergunta, matriz_w, id_w, k_wiki):
+    for id_, nota in buscar(vetor_da_wiki, matriz_w, id_w, k_wiki):
         if nota < nota_minima_wiki:
             continue
         pagina, secao, texto = conn.execute("SELECT pagina, secao, texto FROM trechos WHERE rowid = ?", (id_,)).fetchone()
@@ -46,6 +71,8 @@ def montar(historico, k_wiki=5, k_chats=2, corte=1000, nota_minima_wiki=0.55):
     trechos_das_conversas = []
     conn = sqlite3.connect(f"file:{DB}?mode=ro", uri=True)
     for id_, nota in buscar(vetor_da_pergunta, matriz_c, id_c, k_chats + len(respostas_desta_conversa)):
+        if nota < nota_minima_chats:
+            continue
         linha_da_resposta = conn.execute("SELECT conversa, content FROM mensagens WHERE n = ?", (id_,)).fetchone()
         if linha_da_resposta is None:
             continue
@@ -84,10 +111,13 @@ def montar(historico, k_wiki=5, k_chats=2, corte=1000, nota_minima_wiki=0.55):
 
 
 def buscar(vetor, matriz, id, k):
-    if matriz.shape[0] == 0:
+    if vetor is None or matriz.shape[0] == 0:
         return []
 
-    notas = matriz @ vetor
+    if matriz.dtype == np.float16:
+        notas = np.concatenate([matriz[i:i + 20000].astype(np.float32) @ vetor for i in range(0, matriz.shape[0], 20000)])
+    else:
+        notas = matriz @ vetor
 
     kp = np.argsort(notas)[::-1][:k]
 
@@ -129,16 +159,22 @@ def carregar_conhecimento_chats():
 
 matriz_w = None
 id_w = []
+modelo_da_wiki = "0.6B"
 def carregar_conhecimento_wiki():
-    global matriz_w, id_w
+    global matriz_w, id_w, modelo_da_wiki
     
     conn = sqlite3.connect(BASE)
     cur = conn.cursor()
     
     cur.execute("CREATE TABLE IF NOT EXISTS vetorizado(id INTEGER PRIMARY KEY, vetor BLOB)")
 
+    tem_4b = cur.execute("SELECT name FROM sqlite_master WHERE name = 'vetorizado_4b'").fetchone()
+    if tem_4b and vetor_no_pc("teste") is not None:
+        modelo_da_wiki, tabela, tipo, dimensoes = "4B", "vetorizado_4b", np.float16, 2560
+    else:
+        modelo_da_wiki, tabela, tipo, dimensoes = "0.6B", "vetorizado", np.float32, 1024
     
-    mi = cur.execute("SELECT id, vetor FROM vetorizado")
+    mi = cur.execute(f"SELECT id, vetor FROM {tabela}")
     mit = mi.fetchall()
     
     id_w = []
@@ -146,15 +182,15 @@ def carregar_conhecimento_wiki():
     for id_, mib in mit:
         
         id_w.append(id_)
-        list_trans.append(np.frombuffer(mib, dtype=np.float32))
+        list_trans.append(np.frombuffer(mib, dtype=tipo))
         
     if list_trans:
         matriz_w = np.vstack(list_trans)
     else:
-        matriz_w = np.empty((0, 1024), dtype=np.float32)
+        matriz_w = np.empty((0, dimensoes), dtype=tipo)
         
     conn.close()
-    print(matriz_w.shape, len(id_w))
+    print(modelo_da_wiki, matriz_w.shape, len(id_w))
     
 
 def vetorizar_pmensagem(id, pergunta, resposta):

@@ -6,8 +6,9 @@ import json
 import os
 import re
 import shutil
+import socket
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from itertools import chain
 from pathlib import Path
 
@@ -23,6 +24,12 @@ sys.path.insert(0, str(RAIZ / "1_ada"))
 from conhecimento.conhecimento import carregar_conhecimento_chats, carregar_conhecimento_wiki, montar
 from tools import EXECUTORES
 
+ENDERECO_DO_PC = None
+try:
+    from privado_local import ENDERECO_DO_PC
+except ImportError:
+    pass
+
 FIM_THINK, TOOL = "</think>", "<tool_call>"
 INICIO_DA_CONVERSA, INICIO_DA_RESPOSTA = "<|im_start|>user", "<|im_start|>assistant"
 IMAGEM_NO_TEMPLATE = "<|vision_start|><|image_pad|><|vision_end|>"
@@ -30,10 +37,13 @@ IMAGEM_NO_TEMPLATE = "<|vision_start|><|image_pad|><|vision_end|>"
 
 @dataclass(frozen=True)
 class Config:
-    """Configuração de um processo: modelo, mmproj, contexto, sampling, tools e o system."""
+    """Configuração de um processo: modelo, mmproj, contexto, sampling, tools, o system e a divisão com o PC."""
 
     adapter: str
     pasta_adapter: Path | None
+    adapter_com_o_pc: str | None
+    servidor_rpc: str | None
+    fracao_no_pc: float
     repo_base: str
     arquivo_base: str
     repo_olho: str
@@ -50,11 +60,15 @@ class Config:
 
 
 def configurar():
-    """Monta o Config a partir do ADA_ADAPTER e do tools_pool.json."""
-    nome_adapter = os.environ.get("ADA_ADAPTER", "ada_1_0_27b")
+    """Monta o Config a partir do ADA_ADAPTER, do ADA_RPC (ou do endereço do PC no privado_local) e do tools_pool.json."""
+    adapter_escolhido = os.environ.get("ADA_ADAPTER")
+    nome_adapter = "ada_1_0_2_27b" if adapter_escolhido is None else adapter_escolhido
     return Config(
         adapter=nome_adapter or "qwen3.8_27b_cru",
         pasta_adapter=RAIZ / "_modelo" / nome_adapter if nome_adapter else None,
+        adapter_com_o_pc="ada_1_0_2_27b_iq4_xs" if adapter_escolhido is None else None,
+        servidor_rpc=os.environ.get("ADA_RPC", ENDERECO_DO_PC) or None,
+        fracao_no_pc=0.33,
         repo_base="ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF",
         arquivo_base="Qwen3.8-27B-GSQ-RCO-IQ3_XXS.gguf",
         repo_olho="bartowski/Qwen3.8-27B-GGUF",
@@ -66,7 +80,7 @@ def configurar():
         geracao=dict(max_tokens=4096, temperature=0.7, top_p=0.95, top_k=20, min_p=0.0, presence_penalty=0.0,
                      repeat_penalty=1.0, stop=["<|im_end|>"]),
         pool=json.loads((RAIZ / "1_ada" / "tools_pool.json").read_text(encoding="utf-8")),
-        system="Current user: Victor, your creator. Don't make things up.",
+        system="Current user: Victor.",
         pasta_memorias=Path.home() / "Library" / "Caches" / "ada" / "memorias",
         maximo_memorias=6,
     )
@@ -138,11 +152,15 @@ def _apagar_memorias_de_processos_mortos(raiz):
 
 
 def carregar(config=None):
-    """Abre o GGUF com todas as camadas na GPU, o mmproj, o tokenizer do Qwen e os vetores do RAG (wiki e conversas); devolve (modelo, tokenizer, config)."""
-    config = config or configurar()
+    """Abre o GGUF com todas as camadas na GPU (dividido com o PC quando ele responde), o mmproj, o tokenizer do Qwen e os vetores do RAG (wiki e conversas); devolve (modelo, tokenizer, config)."""
+    config = _com_o_pc_se_der(config or configurar())
     gguf, lora = _arquivos_do_modelo(config)
+    divisao_entre_pc_e_mac = None
+    if config.servidor_rpc:
+        divisao_entre_pc_e_mac = [config.fracao_no_pc, 1 - config.fracao_no_pc]
     modelo = Modelo(config.pasta_memorias, config.maximo_memorias, model_path=gguf, n_ctx=config.n_ctx,
-                    n_gpu_layers=-1, flash_attn=True, n_ubatch=config.n_ubatch, lora_path=lora, verbose=False)
+                    n_gpu_layers=-1, flash_attn=True, n_ubatch=config.n_ubatch, lora_path=lora,
+                    tensor_split=divisao_entre_pc_e_mac, use_mmap=not config.servidor_rpc, verbose=False)
     atexit.register(modelo.close)
     modelo.olho = _abrir_o_olho(modelo, config)
     atexit.register(mtmd.mtmd_free, modelo.olho)
@@ -150,6 +168,39 @@ def carregar(config=None):
     carregar_conhecimento_wiki()
     carregar_conhecimento_chats()
     return modelo, tok, config
+
+
+def _com_o_pc_se_der(config):
+    """Troca pra ADA de 4 bits dividida com o PC se ela existe e o ggml-rpc-server responde; senão fica no adapter do Config, só no Mac."""
+    if not config.servidor_rpc or not config.adapter_com_o_pc:
+        return replace(config, servidor_rpc=None)
+    pasta_com_o_pc = RAIZ / "_modelo" / config.adapter_com_o_pc
+    if not (pasta_com_o_pc / "ada.gguf").exists():
+        return replace(config, servidor_rpc=None)
+    if not _registrar_o_pc(config.servidor_rpc):
+        print(f"o PC ({config.servidor_rpc}) não respondeu: rodando a {config.adapter} só no Mac")
+        return replace(config, servidor_rpc=None)
+    return replace(config, adapter=config.adapter_com_o_pc, pasta_adapter=pasta_com_o_pc)
+
+
+def _registrar_o_pc(endereco):
+    """Registra o ggml-rpc-server do PC como mais um dispositivo do llama.cpp (ele recebe as primeiras camadas); devolve se deu certo."""
+    if not llama_cpp.llama_supports_rpc():
+        return False
+    host, porta = endereco.rsplit(":", 1)
+    try:
+        socket.create_connection((host, int(porta)), timeout=3).close()
+    except OSError:
+        return False
+    lib_do_llama = llama_cpp.llama_cpp._lib
+    lib_do_llama.ggml_backend_rpc_add_server.argtypes = [ctypes.c_char_p]
+    lib_do_llama.ggml_backend_rpc_add_server.restype = ctypes.c_void_p
+    lib_do_llama.ggml_backend_register.argtypes = [ctypes.c_void_p]
+    registro = lib_do_llama.ggml_backend_rpc_add_server(endereco.encode())
+    if not registro:
+        return False
+    lib_do_llama.ggml_backend_register(registro)
+    return True
 
 
 def _abrir_o_olho(modelo, config):
