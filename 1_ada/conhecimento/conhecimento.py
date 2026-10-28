@@ -50,10 +50,15 @@ def montar(historico, k_wiki=5, k_chats=2, corte=1000, nota_minima_wiki=0.55, no
     if not pergunta:
         return list(historico)
 
-    vetor_da_pergunta = model.encode(pergunta, prompt_name="query", normalize_embeddings=True)
+    texto_da_busca = pergunta
+    penultima = historico[-2] if len(historico) >= 2 else None
+    if penultima and penultima["role"] == "assistant" and isinstance(penultima["content"], str):
+        texto_da_busca = penultima["content"] + "\n" + pergunta
+
+    vetor_da_pergunta = model.encode(texto_da_busca, prompt_name="query", normalize_embeddings=True)
     vetor_da_wiki = vetor_da_pergunta
     if modelo_da_wiki == "4B":
-        vetor_da_wiki = vetor_no_pc(pergunta)
+        vetor_da_wiki = vetor_no_pc(texto_da_busca)
         nota_minima_wiki = nota_minima_wiki_4b
 
     trechos_da_wiki = []
