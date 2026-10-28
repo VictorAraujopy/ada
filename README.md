@@ -1,6 +1,6 @@
 # ADA
 
-> A personal AI whose brain runs **entirely on a Mac** — no cloud model, no AI API. The only thing that goes online is a web search, when she decides she needs one.
+> A personal AI whose brain runs **entirely on a Mac** — no cloud model, no AI API. What goes online is a web search, when she decides she needs one, and Hugging Face, where the models are downloaded from.
 
 ADA's personality isn't a system prompt — it's **trained into the weights**. A LoRA fine-tuned on **Qwen3.8-27B** and merged into the model gives her her own voice, opinions and taste, and she's wired to **act on macOS**. The goal: a real personal AI, not a generic assistant playing a role. *(The name comes from Ada Wong, of Resident Evil.)*
 
@@ -29,10 +29,10 @@ https://github.com/user-attachments/assets/843289fe-79dc-42a0-ac63-a636efc6a6f9
 | Personality | LoRA, rank 16, on every linear layer, merged into the weights |
 | Training data | 1,612 curated examples (+71 for validation) |
 | Vision | Qwen3.8's own vision encoder (461M, F16) on the CPU · a photo of up to 1024 px is up to 1,024 tokens |
-| Voice | Whisper large-v3-turbo (int8) on the Mac's CPU · ~4.3 s per phrase · 4.9% word error rate on 14 real phone recordings (the phone's built-in offline recognizer: 38%) · replies spoken by an on-device Android voice |
+| Voice | Whisper large-v3-turbo (int8) on the Mac's CPU · ~4.3 s per phrase · 5.5% word error rate on 14 real phone recordings (the phone's built-in offline recognizer: 38%) · replies spoken by an on-device Android voice |
 | Knowledge (RAG) | Qwen3-Embedding-4B (2560-dim) for the wikis, Qwen3-Embedding-0.6B (1024-dim) for past conversations and as the fallback · ~221k wiki passages (~22M tokens) · up to 5 wiki passages + 2 conversation passages per message, each with similarity ≥ 0.60 |
 | Runtime | Apple Silicon · llama.cpp on Metal · 16k context |
-| Cloud model / AI API | **none** — the only online call is the web search tool (DuckDuckGo) |
+| Cloud model / AI API | **none** — online, only the web search tool (DuckDuckGo) and Hugging Face for the model downloads |
 
 ## How it works
 
