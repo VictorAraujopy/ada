@@ -8,3 +8,4 @@ huggingface_hub==1.17.0  # baixa o GGUF, o olho (mmproj) e o tokenizer
 transformers==5.9.0     # tokenizer e chat template do Qwen
 numpy==2.4.6
 ddgs==9.16.0            # pesquisar_web: busca no DuckDuckGo sem chave de API
+faster-whisper==1.2.1   # o ouvido (1_ada/voz): o Whisper turbo na CPU transcreve a fala que chega do app
