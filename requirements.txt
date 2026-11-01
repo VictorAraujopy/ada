@@ -1,9 +1,10 @@
-# Dependências da ADA — IA pessoal local (Mac, Apple Silicon / Metal). Python 3.12.
+# Dependências da ADA — IA pessoal local (Mac com Metal; parte das camadas pode ir pra GPU de um PC por RPC). Python 3.12.
 #   python3 -m venv .venv && source .venv/bin/activate
+#   CMAKE_ARGS="-DGGML_METAL=on -DGGML_RPC=on" pip install --no-cache-dir llama-cpp-python==0.3.35
 #   pip install -r requirements.txt
 
 # --- Cérebro + runtime (rodar a ADA no Mac) ---
-llama-cpp-python==0.3.35 # roda o Qwen3.8-27B em GGUF 3 bits na GPU (compila com Metal)
+llama-cpp-python==0.3.35 # roda o Qwen3.8-27B em GGUF (4 bits dividido com o PC, ou 3 bits só no Mac); sem o GGML_RPC no build, fica só no Mac
 huggingface_hub==1.17.0  # baixa o GGUF, o olho (mmproj) e o tokenizer
 transformers==5.9.0     # tokenizer e chat template do Qwen
 numpy==2.4.6
