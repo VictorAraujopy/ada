@@ -1,33 +1,29 @@
 """RAG"""
+from functools import cache
 from pathlib import Path
 import os
-import requests 
 import sqlite3
 import json
 import time
 import numpy as np
+from huggingface_hub import hf_hub_download
+from llama_cpp import Llama, LLAMA_POOLING_TYPE_LAST
 PASTA_DOS_PROJETOS = Path(__file__).resolve().parents[3]
 DB = Path(os.environ.get("ADA_DB") or PASTA_DOS_PROJETOS / "ada-api" / "dados" / "conversas.db")
-ENDERECO_DO_EMBEDDING, CHAVE_DO_EMBEDDING = None, None
-try:
-    from privado_local import ENDERECO_DO_EMBEDDING, CHAVE_DO_EMBEDDING
-except ImportError:
-    pass
 PREFIXO_DA_PERGUNTA = "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:"
 
 
-def vetor_no_pc(texto, tempo_maximo=10):
-    """Pede ao servidor do PC (Qwen3-Embedding-4B) o vetor do texto; devolve None se o PC não responder em `tempo_maximo` segundos."""
-    if not ENDERECO_DO_EMBEDDING:
-        return None
-    try:
-        resposta = requests.post(f"http://{ENDERECO_DO_EMBEDDING}/v1/embeddings",
-                                 json={"input": texto},
-                                 headers={"Authorization": f"Bearer {CHAVE_DO_EMBEDDING}"}, timeout=tempo_maximo)
-        resposta.raise_for_status()
-    except requests.RequestException:
-        return None
-    return np.array(resposta.json()["data"][0]["embedding"], dtype=np.float32)
+@cache
+def modelo_de_embedding():
+    """Abre o Qwen3-Embedding-0.6B (Q8) uma vez só, na CPU do Mac: a GPU fica com a ADA."""
+    arquivo = hf_hub_download("Qwen/Qwen3-Embedding-0.6B-GGUF", "Qwen3-Embedding-0.6B-Q8_0.gguf")
+    return Llama(model_path=arquivo, embedding=True, pooling_type=LLAMA_POOLING_TYPE_LAST, n_gpu_layers=0,
+                 n_ctx=2048, n_batch=2048, n_ubatch=512, flash_attn=True, verbose=False)
+
+
+def vetor_no_mac(texto):
+    """Devolve o vetor normalizado do texto pelo Qwen3-Embedding-0.6B."""
+    return np.array(modelo_de_embedding().embed(texto, normalize=True), dtype=np.float32)
 
 def montar(historico, k_chats=2, corte=1000, nota_minima_chats=0.60):
     """Devolve uma cópia do histórico com a última mensagem do user trocada pelo bloco do RAG: conversas passadas e a mensagem atual."""
@@ -49,7 +45,7 @@ def montar(historico, k_chats=2, corte=1000, nota_minima_chats=0.60):
     if penultima and penultima["role"] == "assistant" and isinstance(penultima["content"], str):
         texto_da_busca = penultima["content"] + "\n" + pergunta
 
-    vetor_da_pergunta = vetor_no_pc(PREFIXO_DA_PERGUNTA + texto_da_busca)
+    vetor_da_pergunta = vetor_no_mac(PREFIXO_DA_PERGUNTA + texto_da_busca)
 
     respostas_desta_conversa = {m["content"] for m in historico if m["role"] == "assistant"}
     trechos_das_conversas = []
@@ -108,7 +104,9 @@ id_c = []
 matriz_c = None
 def carregar_conhecimento_chats():
     global matriz_c, id_c
-        
+
+    modelo_de_embedding()
+
     conn = sqlite3.connect(DB)
     cur = conn.cursor()
     
@@ -127,7 +125,7 @@ def carregar_conhecimento_chats():
     if list_trans:
         matriz_c = np.vstack(list_trans)
     else:
-        matriz_c = np.empty((0, 2560), dtype=np.float32)
+        matriz_c = np.empty((0, 1024), dtype=np.float32)
           
     conn.close()
     print(matriz_c.shape, len(id_c))
@@ -141,9 +139,7 @@ def vetorizar_pmensagem(id, pergunta, resposta):
     
     juntando =(f"user: {pergunta} assistant: {resposta}")
 
-    vet = vetor_no_pc(juntando, tempo_maximo=60)
-    if vet is None:
-        return
+    vet = vetor_no_mac(juntando)
 
     conn = sqlite3.connect(DB)
     cur = conn.cursor()
@@ -192,11 +188,7 @@ def guardar(conversa, historico, meta):
     vetorizar_pmensagem(id, texto_da_pergunta, resposta["content"])
 
 def vetorizar_chat():
-    """Apaga a vetorizado do conversas.db e vetoriza de novo todos os pares pergunta/resposta no servidor do PC."""
-    if vetor_no_pc("teste") is None:
-        print("o servidor de embedding do PC não respondeu: nada foi mexido")
-        return
-
+    """Apaga a vetorizado do conversas.db e vetoriza de novo todos os pares pergunta/resposta no Qwen3-Embedding-0.6B do Mac."""
     conn = sqlite3.connect(DB)
     cur = conn.cursor()
     
@@ -228,19 +220,14 @@ def vetorizar_chat():
     cur.execute("DROP TABLE IF EXISTS vetorizado")
     cur.execute("CREATE TABLE vetorizado(id INTEGER PRIMARY KEY, vetor BLOB)")
     
-    vetorizados = 0
     for y, texto in zip(ids, lmtextos):
-        vet = vetor_no_pc(texto, tempo_maximo=60)
-        if vet is None:
-            print(f"sem vetor: resposta {y}")
-            continue
+        vet = vetor_no_mac(texto)
         cur.execute("INSERT INTO vetorizado(id, vetor) VALUES(?, ?)",
                     (y, vet.tobytes()),)
-        vetorizados += 1
-        
+
     conn.commit()
     conn.close()
-    print(f"{vetorizados} de {len(ids)} pares vetorizados no 4B")
+    print(f"{len(ids)} pares vetorizados no 0.6B")
    
             
 if __name__ == "__main__":

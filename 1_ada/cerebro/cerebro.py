@@ -1,11 +1,9 @@
 """Cérebro da ADA: configura, carrega o modelo e o mmproj, e responde em eventos (raciocínio, tools e resposta)."""
 import atexit
 import ctypes
-import hashlib
 import json
 import os
 import re
-import shutil
 import socket
 import sys
 from dataclasses import dataclass, replace
@@ -15,14 +13,15 @@ from pathlib import Path
 import llama_cpp
 import llama_cpp.mtmd_cpp as mtmd
 from huggingface_hub import hf_hub_download
-from llama_cpp import Llama
 from transformers import AutoTokenizer
 
-RAIZ = Path(__file__).resolve().parent.parent
+RAIZ = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(RAIZ / "1_ada"))
 
+from cerebro.memoria import Modelo
 from conhecimento.conhecimento import carregar_conhecimento_chats, montar
 from tools import EXECUTORES
+from visao import olho
 
 ENDERECO_DO_PC = None
 try:
@@ -32,7 +31,6 @@ except ImportError:
 
 FIM_THINK, TOOL = "</think>", "<tool_call>"
 INICIO_DA_CONVERSA, INICIO_DA_RESPOSTA = "<|im_start|>user", "<|im_start|>assistant"
-IMAGEM_NO_TEMPLATE = "<|vision_start|><|image_pad|><|vision_end|>"
 
 
 @dataclass(frozen=True)
@@ -55,8 +53,7 @@ class Config:
     geracao: dict
     pool: list
     system: str
-    pasta_memorias: Path
-    maximo_memorias: int
+    vagas_de_memoria: int
 
 
 def configurar():
@@ -66,7 +63,7 @@ def configurar():
     return Config(
         adapter=nome_adapter or "qwen3.8_27b_cru",
         pasta_adapter=RAIZ / "_modelo" / nome_adapter if nome_adapter else None,
-        adapter_com_o_pc="ada_1_0_2_27b_iq4_xs" if adapter_escolhido is None else None,
+        adapter_com_o_pc="ada_1_0_3_27b_iq4_xs" if adapter_escolhido is None else None,
         servidor_rpc=os.environ.get("ADA_RPC", ENDERECO_DO_PC) or None,
         fracao_no_pc=0.33,
         repo_base="ISTA-DASLab/Qwen3.8-27B-GSQ-RCO-GGUF",
@@ -81,90 +78,25 @@ def configurar():
                      repeat_penalty=1.0, stop=["<|im_end|>"]),
         pool=json.loads((RAIZ / "1_ada" / "tools_pool.json").read_text(encoding="utf-8")),
         system="Current user: Victor.",
-        pasta_memorias=Path.home() / "Library" / "Caches" / "ada" / "memorias",
-        maximo_memorias=6,
+        vagas_de_memoria=4,
     )
 
 
-class Modelo(Llama):
-    """Llama que salva o estado do llama.cpp em disco e retoma do maior começo de prompt já lido, em vez de reler tudo."""
-
-    def __init__(self, pasta_memorias, maximo_memorias, **kwargs):
-        """Abre o modelo, cria a pasta de memórias deste processo e apaga as de processos que já acabaram."""
-        super().__init__(**kwargs)
-        _apagar_memorias_de_processos_mortos(pasta_memorias)
-        self.pasta_memorias = pasta_memorias / str(os.getpid())
-        self.pasta_memorias.mkdir(parents=True, exist_ok=True)
-        atexit.register(shutil.rmtree, self.pasta_memorias, True)
-        self.maximo_memorias = maximo_memorias
-        self.memorias = {}
-        self.continuar = False
-        self.olho = None
-
-    def generate(self, tokens, **kwargs):
-        """Gera a partir do estado carregado quando `continuar` está ligado, sem tentar reaproveitar o prefixo."""
-        if self.continuar:
-            kwargs["reset"] = False
-        return super().generate(tokens, **kwargs)
-
-    def retomar(self, tokens):
-        """Carrega a memória salva que cobre o maior começo de `tokens` e devolve quantos tokens ela já leu (0 se nenhuma cobre)."""
-        cobrem = [arquivo for arquivo, lidos in self.memorias.items() if tokens[: len(lidos)] == lidos]
-        if not cobrem:
-            self.reset()
-            return 0
-        arquivo = max(cobrem, key=lambda candidato: len(self.memorias[candidato]))
-        lidos = self.memorias.pop(arquivo)
-        buffer_de_tokens = (llama_cpp.llama_token * self.n_ctx())()
-        quantos = ctypes.c_size_t()
-        carregou = llama_cpp.llama_state_load_file(self._ctx.ctx, str(arquivo).encode(), buffer_de_tokens,
-                                                   self.n_ctx(), ctypes.byref(quantos))
-        if not carregou:
-            self.reset()
-            return 0
-        self.memorias[arquivo] = lidos
-        self.n_tokens = len(lidos)
-        self.input_ids[: len(lidos)] = lidos
-        return len(lidos)
-
-    def guardar(self, tokens):
-        """Salva em disco o estado que leu exatamente `tokens` e apaga a memória menos usada se passar de `maximo_memorias`."""
-        arquivo = self.pasta_memorias / f"{len(tokens)}-{hash(tuple(tokens)) & 0xFFFFFFFF:08x}.bin"
-        llama_cpp.llama_state_save_file(self._ctx.ctx, str(arquivo).encode(),
-                                        (llama_cpp.llama_token * len(tokens))(*tokens), len(tokens))
-        self.memorias.pop(arquivo, None)
-        self.memorias[arquivo] = list(tokens)
-        while len(self.memorias) > self.maximo_memorias:
-            mais_antiga = next(iter(self.memorias))
-            del self.memorias[mais_antiga]
-            mais_antiga.unlink(missing_ok=True)
-
-
-def _apagar_memorias_de_processos_mortos(raiz):
-    """Apaga as pastas de memória cujo PID não está mais rodando."""
-    for pasta in raiz.glob("*"):
-        try:
-            os.kill(int(pasta.name), 0)
-        except (ValueError, ProcessLookupError):
-            shutil.rmtree(pasta, ignore_errors=True)
-        except PermissionError:
-            pass
-
-
 def carregar(config=None):
-    """Abre o GGUF com todas as camadas na GPU (dividido com o PC quando ele responde), o mmproj, o tokenizer do Qwen e os vetores do RAG das conversas; devolve (modelo, tokenizer, config)."""
+    """Abre o GGUF com todas as camadas na GPU (dividido com o PC quando ele responde), o mmproj, o tokenizer do Qwen e os vetores do RAG das conversas, e já guarda o começo fixo (system + tools) na memória; devolve (modelo, tokenizer, config)."""
     config = _com_o_pc_se_der(config or configurar())
     gguf, lora = _arquivos_do_modelo(config)
     divisao_entre_pc_e_mac = None
     if config.servidor_rpc:
         divisao_entre_pc_e_mac = [config.fracao_no_pc, 1 - config.fracao_no_pc]
-    modelo = Modelo(config.pasta_memorias, config.maximo_memorias, model_path=gguf, n_ctx=config.n_ctx,
+    modelo = Modelo(config.vagas_de_memoria, model_path=gguf, n_ctx=config.n_ctx,
                     n_gpu_layers=-1, flash_attn=True, n_ubatch=config.n_ubatch, lora_path=lora,
                     tensor_split=divisao_entre_pc_e_mac, use_mmap=not config.servidor_rpc, verbose=False)
     atexit.register(modelo.close)
-    modelo.olho = _abrir_o_olho(modelo, config)
+    modelo.olho = olho.abrir_o_olho(modelo, config)
     atexit.register(mtmd.mtmd_free, modelo.olho)
     tok = AutoTokenizer.from_pretrained(config.tokenizer)
+    _guardar_o_comeco_fixo(modelo, tok, config)
     carregar_conhecimento_chats()
     return modelo, tok, config
 
@@ -202,20 +134,6 @@ def _registrar_o_pc(endereco):
     return True
 
 
-def _abrir_o_olho(modelo, config):
-    """Abre o mmproj F16 do Qwen3.8 (visão) na CPU."""
-    parametros = mtmd.mtmd_context_params_default()
-    parametros.use_gpu = False
-    parametros.print_timings = False
-    parametros.n_threads = config.threads_do_olho
-    parametros.flash_attn_type = llama_cpp.LLAMA_FLASH_ATTN_TYPE_ENABLED
-    arquivo_do_olho = hf_hub_download(config.repo_olho, config.arquivo_olho)
-    olho = mtmd.mtmd_init_from_file(arquivo_do_olho.encode(), modelo.model, parametros)
-    if olho is None or not mtmd.mtmd_support_vision(olho):
-        raise RuntimeError(f"não consegui abrir o olho em {arquivo_do_olho}")
-    return olho
-
-
 def _arquivos_do_modelo(config):
     """Devolve (gguf, lora): o ada.gguf fundido sem LoRA, se existir; senão o 27B da ISTA com o adapter.gguf."""
     if config.pasta_adapter and (config.pasta_adapter / "ada.gguf").exists():
@@ -249,104 +167,35 @@ def executar(nome, args):
         return f"error in tool {nome}: {e}"
 
 
-@dataclass
-class PromptCortado:
-    """Prompt tokenizado: os tokens em ordem, as imagens por posição, o total de células no contexto e os pedaços do mtmd."""
-
-    tokens: list
-    imagens: dict
-    celulas: int
-    pedacos: object
-
-
-def _cortar_prompt(modelo, prompt, arquivos_das_imagens):
-    """Divide o prompt em pedaços de texto e de imagem pelo mtmd; cada imagem ocupa as posições dela com uma marca tirada do hash da foto."""
-    marcador = mtmd.mtmd_default_marker().decode()
-    texto = prompt.replace(IMAGEM_NO_TEMPLATE, marcador).encode("utf-8")
-    bitmaps = [_abrir_a_foto(modelo.olho, arquivo) for arquivo in arquivos_das_imagens]
-    entrada = mtmd.mtmd_input_text()
-    entrada.text = texto
-    entrada.text_len = len(texto)
-    entrada.add_special = True
-    entrada.parse_special = True
-    pedacos = mtmd.mtmd_input_chunks_init()
-    lista_de_bitmaps = (mtmd.mtmd_bitmap_p_ctypes * len(bitmaps))(*bitmaps)
-    resultado = mtmd.mtmd_tokenize(modelo.olho, pedacos, ctypes.byref(entrada), lista_de_bitmaps, len(bitmaps))
-    for bitmap in bitmaps:
-        mtmd.mtmd_bitmap_free(bitmap)
-    if resultado != 0:
-        mtmd.mtmd_input_chunks_free(pedacos)
-        raise ValueError(f"não consegui cortar o prompt com {len(bitmaps)} imagem(ns) (erro {resultado} do mtmd)")
-
-    tokens, imagens, celulas_a_mais = [], {}, 0
-    for i in range(mtmd.mtmd_input_chunks_size(pedacos)):
-        pedaco = mtmd.mtmd_input_chunks_get(pedacos, i)
-        if mtmd.mtmd_input_chunk_get_type(pedaco) == mtmd.MTMD_INPUT_CHUNK_TYPE_TEXT:
-            tokens += _tokens_do_texto(pedaco)
-            continue
-        imagens[len(tokens)] = pedaco
-        marca_da_foto = -1 - int(mtmd.mtmd_input_chunk_get_id(pedaco)[:7], 16)
-        posicoes = mtmd.mtmd_input_chunk_get_n_pos(pedaco)
-        tokens += [marca_da_foto] * posicoes
-        celulas_a_mais += mtmd.mtmd_input_chunk_get_n_tokens(pedaco) - posicoes
-    return PromptCortado(tokens=tokens, imagens=imagens, celulas=len(tokens) + celulas_a_mais, pedacos=pedacos)
-
-
-def _abrir_a_foto(olho, arquivo):
-    """Abre a imagem como bitmap do mtmd com o sha256 dos bytes como id, pra memória reconhecer a mesma foto."""
-    bitmap = mtmd.mtmd_helper_bitmap_init_from_file(olho, str(arquivo).encode(), False)
-    if bitmap is None:
-        raise ValueError(f"não consegui abrir a imagem {arquivo}")
-    identidade = hashlib.sha256(Path(arquivo).read_bytes()).hexdigest()
-    mtmd.mtmd_bitmap_set_id(bitmap, identidade.encode())
-    return bitmap
-
-
-def _tokens_do_texto(pedaco):
-    """Devolve os tokens de um pedaço de texto do mtmd."""
-    quantos = ctypes.c_size_t()
-    ponteiro = mtmd.mtmd_input_chunk_get_tokens_text(pedaco, ctypes.byref(quantos))
-    return [ponteiro[i] for i in range(quantos.value)]
-
-
-def _arquivos_das_imagens(hist):
-    """Lista o arquivo de cada imagem do histórico, na ordem em que o template escreve."""
-    return [parte["arquivo"] for mensagem in hist if isinstance(mensagem["content"], list)
-            for parte in mensagem["content"] if parte.get("type") == "image"]
-
-
 def _posicoes(tokens, procurado):
     """Devolve as posições onde a sequência `procurado` começa dentro de `tokens`."""
     tamanho = len(procurado)
     return [i for i in range(len(tokens) - tamanho + 1) if tokens[i:i + tamanho] == procurado]
 
 
-def _ler_ate(modelo, cortado, fim):
-    """Avalia o prompt da posição atual do modelo até `fim`: texto pelo eval, imagem pelo mmproj."""
-    while modelo.n_tokens < fim:
-        inicio = modelo.n_tokens
-        if inicio in cortado.imagens:
-            _ler_imagem(modelo, cortado.imagens[inicio])
-            continue
-        proxima_imagem = min([posicao for posicao in cortado.imagens if posicao > inicio], default=fim)
-        modelo.eval(cortado.tokens[inicio:min(fim, proxima_imagem)])
+def _cortar_prompt(modelo, tok, config, hist, pensando):
+    """Monta o prompt pelo chat template e corta ele em texto e imagens pelo olho."""
+    prompt = tok.apply_chat_template(hist, tools=config.pool, tokenize=False, add_generation_prompt=True,
+                                     enable_thinking=pensando, preserve_thinking=False)
+    return olho.cortar_prompt(modelo, prompt, olho.arquivos_das_imagens(hist))
 
 
-def _ler_imagem(modelo, pedaco):
-    """Codifica a imagem pelo mmproj e escreve o resultado no contexto do modelo, na posição dela no prompt."""
-    nova_posicao = llama_cpp.llama_pos(0)
-    resultado = mtmd.mtmd_helper_eval_chunk_single(modelo.olho, modelo._ctx.ctx, pedaco, modelo.n_tokens, 0,
-                                                   modelo.n_batch, False, ctypes.byref(nova_posicao))
-    if resultado != 0:
-        raise RuntimeError(f"a imagem não entrou no modelo (erro {resultado} do llama.cpp)")
-    modelo.n_tokens = nova_posicao.value
+def _guardar_o_comeco_fixo(modelo, tok, config):
+    """Lê o system + tools de uma conversa vazia e guarda na memória, pra primeira mensagem de qualquer conversa já retomar dele."""
+    conversa_vazia = [{"role": "system", "content": config.system}, {"role": "user", "content": ""}]
+    cortado = _cortar_prompt(modelo, tok, config, conversa_vazia, pensando=True)
+    try:
+        inicio_da_conversa = modelo.tokenize(INICIO_DA_CONVERSA.encode(), add_bos=False, special=True)
+        comeco_fixo = _posicoes(cortado.tokens, inicio_da_conversa)[0]
+        olho.ler_ate(modelo, cortado, comeco_fixo)
+        modelo.guardar(cortado.tokens[:comeco_fixo])
+    finally:
+        mtmd.mtmd_input_chunks_free(cortado.pedacos)
 
 
 def _gerar(modelo, tok, config, hist, pensando, gen_kw):
-    """Monta o prompt pelo chat template, retoma da maior memória salva, salva o começo fixo, o começo e o fim da pergunta e gera o texto em stream."""
-    prompt = tok.apply_chat_template(hist, tools=config.pool, tokenize=False, add_generation_prompt=True,
-                                     enable_thinking=pensando, preserve_thinking=False)
-    cortado = _cortar_prompt(modelo, prompt, _arquivos_das_imagens(hist))
+    """Monta o prompt pelo chat template, retoma da maior memória guardada, guarda o começo fixo, o começo e o fim da pergunta e gera o texto em stream."""
+    cortado = _cortar_prompt(modelo, tok, config, hist, pensando)
     try:
         inicio_da_conversa = modelo.tokenize(INICIO_DA_CONVERSA.encode(), add_bos=False, special=True)
         inicio_da_resposta = modelo.tokenize(INICIO_DA_RESPOSTA.encode(), add_bos=False, special=True)
@@ -358,7 +207,7 @@ def _gerar(modelo, tok, config, hist, pensando, gen_kw):
         lidos = modelo.retomar(cortado.tokens)
         for parada in paradas:
             if lidos < parada:
-                _ler_ate(modelo, cortado, parada)
+                olho.ler_ate(modelo, cortado, parada)
                 modelo.guardar(cortado.tokens[:parada])
                 lidos = parada
     finally:
@@ -442,33 +291,3 @@ def responder_eventos(modelo, tok, config, historico, **gen_kw):
         yield from _falar(modelo, tok, config, hist2, gen_kw)
     yield {"t": "fim"}
 
-
-def responder(modelo, tok, config, historico, **gen_kw):
-    """Roda o responder_eventos e junta o resultado em (resposta, passos das tools)."""
-    resposta, passos = "", []
-    for ev in responder_eventos(modelo, tok, config, historico, **gen_kw):
-        if ev["t"] == "resp":
-            resposta += ev["d"]
-        elif ev["t"] == "tool":
-            passos.append((ev["nome"], ev["args"], ev["res"]))
-    return resposta.strip(), passos or None
-
-
-def responder_stream(modelo, tok, config, historico, **gen_kw):
-    """Roda o responder_eventos imprimindo ao vivo no terminal (raciocínio em cinza, tool em amarelo, resposta em ciano) e devolve (resposta, passos)."""
-    abre = {"think": "\033[2m💭 ", "resp": "\033[96mADA>\033[0m "}
-    resposta, passos, atual = "", [], None
-    for ev in responder_eventos(modelo, tok, config, historico, **gen_kw):
-        if ev["t"] in abre:
-            if ev["t"] != atual:
-                print(("\033[0m\n" if atual else "") + abre[ev["t"]], end="", flush=True)
-                atual = ev["t"]
-            print(ev["d"], end="", flush=True)
-            if ev["t"] == "resp":
-                resposta += ev["d"]
-        elif ev["t"] == "tool":
-            print(("\033[0m\n" if atual else "") + f"\033[93m[{ev['nome']} → {ev['res']}]\033[0m")
-            passos.append((ev["nome"], ev["args"], ev["res"]))
-            atual = None
-    print("\033[0m")
-    return resposta.strip(), passos or None

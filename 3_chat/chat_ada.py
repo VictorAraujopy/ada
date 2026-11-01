@@ -6,9 +6,40 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ / "1_ada"))
-import cerebro
+from cerebro import cerebro
 
 SHOW_THINK = os.environ.get("ADA_SHOW_THINK", "off") == "on"
+
+
+def responder(modelo, tok, config, historico, **gen_kw):
+    """Roda o responder_eventos do cérebro e junta o resultado em (resposta, passos das tools)."""
+    resposta, passos = "", []
+    for evento in cerebro.responder_eventos(modelo, tok, config, historico, **gen_kw):
+        if evento["t"] == "resp":
+            resposta += evento["d"]
+        elif evento["t"] == "tool":
+            passos.append((evento["nome"], evento["args"], evento["res"]))
+    return resposta.strip(), passos or None
+
+
+def responder_stream(modelo, tok, config, historico, **gen_kw):
+    """Roda o responder_eventos do cérebro imprimindo ao vivo no terminal (raciocínio em cinza, tool em amarelo, resposta em ciano) e devolve (resposta, passos)."""
+    abre = {"think": "\033[2m💭 ", "resp": "\033[96mADA>\033[0m "}
+    resposta, passos, atual = "", [], None
+    for evento in cerebro.responder_eventos(modelo, tok, config, historico, **gen_kw):
+        if evento["t"] in abre:
+            if evento["t"] != atual:
+                print(("\033[0m\n" if atual else "") + abre[evento["t"]], end="", flush=True)
+                atual = evento["t"]
+            print(evento["d"], end="", flush=True)
+            if evento["t"] == "resp":
+                resposta += evento["d"]
+        elif evento["t"] == "tool":
+            print(("\033[0m\n" if atual else "") + f"\033[93m[{evento['nome']} → {evento['res']}]\033[0m")
+            passos.append((evento["nome"], evento["args"], evento["res"]))
+            atual = None
+    print("\033[0m")
+    return resposta.strip(), passos or None
 
 
 def main():
@@ -39,10 +70,10 @@ def main():
 
         historico.append({"role": "user", "content": entrada})
         if SHOW_THINK:
-            resposta, passo = cerebro.responder_stream(model, processor, config, historico, **config.geracao)
+            resposta, passo = responder_stream(model, processor, config, historico, **config.geracao)
             print()
         else:
-            resposta, passo = cerebro.responder(model, processor, config, historico, **config.geracao)
+            resposta, passo = responder(model, processor, config, historico, **config.geracao)
             if passo:
                 for t_nome, _, t_res in passo:
                     print(f"\033[93m[{t_nome} → {t_res}]\033[0m")
