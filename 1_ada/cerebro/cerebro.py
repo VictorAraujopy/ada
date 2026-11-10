@@ -16,6 +16,7 @@ from huggingface_hub import hf_hub_download
 from transformers import AutoTokenizer
 
 RAIZ = Path(__file__).resolve().parents[2]
+PASTA_DOS_MODELOS = Path.home() / "Desktop" / "ada"
 sys.path.insert(0, str(RAIZ / "1_ada"))
 
 from cerebro.memoria import Modelo
@@ -62,7 +63,7 @@ def configurar():
     nome_adapter = "ada_1_0_2_27b" if adapter_escolhido is None else adapter_escolhido
     return Config(
         adapter=nome_adapter or "qwen3.8_27b_cru",
-        pasta_adapter=RAIZ / "_modelo" / nome_adapter if nome_adapter else None,
+        pasta_adapter=PASTA_DOS_MODELOS / nome_adapter if nome_adapter else None,
         adapter_com_o_pc="ada_1_0_3_27b_iq4_xs" if adapter_escolhido is None else None,
         servidor_rpc=os.environ.get("ADA_RPC", ENDERECO_DO_PC) or None,
         fracao_no_pc=0.33,
@@ -105,7 +106,7 @@ def _com_o_pc_se_der(config):
     """Troca pra ADA de 4 bits dividida com o PC se ela existe e o ggml-rpc-server responde; senão fica no adapter do Config, só no Mac."""
     if not config.servidor_rpc or not config.adapter_com_o_pc:
         return replace(config, servidor_rpc=None)
-    pasta_com_o_pc = RAIZ / "_modelo" / config.adapter_com_o_pc
+    pasta_com_o_pc = PASTA_DOS_MODELOS / config.adapter_com_o_pc
     if not (pasta_com_o_pc / "ada.gguf").exists():
         return replace(config, servidor_rpc=None)
     if not _registrar_o_pc(config.servidor_rpc):

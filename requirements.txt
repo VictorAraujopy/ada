@@ -2,6 +2,7 @@
 #   python3 -m venv .venv && source .venv/bin/activate
 #   CMAKE_ARGS="-DGGML_METAL=on -DGGML_RPC=on" pip install --no-cache-dir llama-cpp-python==0.3.35
 #   pip install -r requirements.txt
+#   brew install macmon   # temperatura_do_mac: lê a CPU e a GPU sem sudo (não é pacote do pip)
 
 # --- Cérebro + runtime (rodar a ADA no Mac) ---
 llama-cpp-python==0.3.35 # roda o Qwen3.8-27B em GGUF (4 bits dividido com o PC, ou 3 bits só no Mac); sem o GGML_RPC no build, fica só no Mac
@@ -9,4 +10,5 @@ huggingface_hub==1.17.0  # baixa o GGUF, o olho (mmproj) e o tokenizer
 transformers==5.9.0     # tokenizer e chat template do Qwen
 numpy==2.4.6
 ddgs==9.16.0            # pesquisar_web: busca no DuckDuckGo sem chave de API
-faster-whisper==1.2.1   # o ouvido (1_ada/ouvido): o Whisper turbo na CPU transcreve a fala que chega do app
+faster-whisper==1.2.1   # o ouvido (1_ada/ouvido): só o Silero dele, que recorta a fala antes de ir pro OpenRouter
+requests==2.34.2        # o ouvido e a fala: a transcrição (Whisper large-v3) e a voz (MAI-Voice Flash) no OpenRouter, cada um com dois reservas

@@ -1,18 +1,21 @@
-"""O ouvido da ADA: o Whisper turbo na CPU transcreve um pedaço da fala (WAV 16 kHz mono) e separa o comando do fim."""
+"""O ouvido da ADA: o Silero recorta a fala do WAV no Mac, o OpenRouter transcreve (endpoint e modelos no .env) e o comando do fim é separado."""
+import base64
 import io
+import os
 import re
 import wave
+from dataclasses import dataclass
 
 import numpy
-from faster_whisper import WhisperModel
+import requests
+from faster_whisper.vad import VadOptions, collect_chunks, get_speech_timestamps, get_vad_model
 
-MODELO = "large-v3-turbo"
-VERSAO_DO_MODELO = "0a363e9161cbc7ed1431c9597a8ceaf0c4f78fcf"
-THREADS = 4
 TAXA = 16_000
 MAX_SEGUNDOS = 30
 PROMPT_INICIAL_DO_WHISPER = ("Hey Ada, open Spotify. enviar. apagar. Ada Wong, Leon, Claire Redfield, "
                              "Resident Evil Requiem, Raccoon City. enviar.")
+PALAVRAS_CHAVE_DO_DEEPGRAM = ["Ada", "Ada Wong", "Leon", "Claire Redfield", "Resident Evil Requiem", "Raccoon City",
+                              "enviar", "apagar"]
 COMANDOS = ("enviar", "apagar")
 FOLGA_EM_VOLTA_DA_FALA_MS = 800
 
@@ -21,14 +24,40 @@ class AudioInvalido(ValueError):
     """O áudio não é um WAV inteiro de 16 kHz, mono, 16 bits, com até MAX_SEGUNDOS."""
 
 
-def carregar():
-    """Abre o Whisper turbo em int8 na CPU, na VERSAO_DO_MODELO, do cache local; o Hugging Face só se não estiver lá."""
-    try:
-        return WhisperModel(MODELO, device="cpu", compute_type="int8", cpu_threads=THREADS,
-                            revision=VERSAO_DO_MODELO, local_files_only=True)
-    except FileNotFoundError:
-        return WhisperModel(MODELO, device="cpu", compute_type="int8", cpu_threads=THREADS,
-                            revision=VERSAO_DO_MODELO)
+class OuvidoForaDoAr(RuntimeError):
+    """Nenhum dos modelos do Config respondeu pro pedaço (rede, provedor fora do ar, crédito acabou)."""
+
+
+@dataclass(frozen=True)
+class Config:
+    """O endpoint de transcrição, os modelos em ordem (o primeiro que responder vale) e quanto esperar cada um."""
+
+    url: str
+    modelos_em_ordem: list[str]
+    tempo_maximo_por_modelo_s: float
+
+
+def _lista_do_env(nome):
+    """A variável do .env separada nas vírgulas, sem espaço em volta de cada item."""
+    return [item.strip() for item in os.environ[nome].split(",")]
+
+
+def configurar():
+    """Monta o Config a partir do OUVIDO_URL, do OUVIDO_MODELOS e do OUVIDO_TEMPO_MAXIMO_S do .env."""
+    return Config(
+        url=os.environ["OUVIDO_URL"],
+        modelos_em_ordem=_lista_do_env("OUVIDO_MODELOS"),
+        tempo_maximo_por_modelo_s=float(os.environ["OUVIDO_TEMPO_MAXIMO_S"]),
+    )
+
+
+def carregar(config=None):
+    """Abre o Silero (fica guardado dentro do faster-whisper) e a sessão HTTP com o OpenRouter e devolve (sessão, config)."""
+    config = config or configurar()
+    get_vad_model()
+    openrouter = requests.Session()
+    openrouter.headers["Authorization"] = f"Bearer {os.environ['OPENROUTER_API_KEY']}"
+    return openrouter, config
 
 
 def _amostras_do_wav(wav_em_bytes):
@@ -52,12 +81,66 @@ def _amostras_do_wav(wav_em_bytes):
     return amostras.astype(numpy.float32) / 32768
 
 
-def transcrever(whisper, wav_em_bytes):
-    """Transcreve um pedaço em inglês com o PROMPT_INICIAL_DO_WHISPER e o detector de fala (Silero) do Whisper."""
+def _so_a_fala(amostras):
+    """O Silero acha os trechos com fala (com FOLGA_EM_VOLTA_DA_FALA_MS em volta) e junta só eles; None se não há fala."""
+    trechos_com_fala = get_speech_timestamps(amostras, VadOptions(speech_pad_ms=FOLGA_EM_VOLTA_DA_FALA_MS))
+    if not trechos_com_fala:
+        return None
+    pedacos_com_fala, _ = collect_chunks(amostras, trechos_com_fala)
+    return numpy.concatenate(pedacos_com_fala)
+
+
+def _wav_em_bytes(amostras):
+    """As amostras em float32 de volta num WAV de TAXA Hz, mono, 16 bits."""
+    pcm = (numpy.clip(amostras, -1, 1) * 32767).astype(numpy.int16).tobytes()
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as arquivo:
+        arquivo.setnchannels(1)
+        arquivo.setsampwidth(2)
+        arquivo.setframerate(TAXA)
+        arquivo.writeframes(pcm)
+    return buffer.getvalue()
+
+
+def _pedido_pro_openrouter(modelo, wav_so_da_fala):
+    """O corpo do POST: o áudio em base64, em inglês, só em provedor zdr e com a dica de vocabulário de cada provedor."""
+    return {
+        "model": modelo,
+        "input_audio": {"data": base64.b64encode(wav_so_da_fala).decode(), "format": "wav"},
+        "language": "en",
+        "temperature": 0,
+        "provider": {
+            "zdr": True,
+            "options": {
+                "deepinfra/us": {"prompt": PROMPT_INICIAL_DO_WHISPER},
+                "together": {"prompt": PROMPT_INICIAL_DO_WHISPER},
+                "groq": {"prompt": PROMPT_INICIAL_DO_WHISPER},
+                "deepgram": {"keyterm": PALAVRAS_CHAVE_DO_DEEPGRAM},
+            },
+        },
+    }
+
+
+def transcrever(openrouter, config, wav_em_bytes):
+    """Recorta a fala com o Silero e transcreve no primeiro modelo que responder; só barulho volta "" sem sair do Mac."""
     amostras = _amostras_do_wav(wav_em_bytes)
-    trechos, _ = whisper.transcribe(amostras, language="en", initial_prompt=PROMPT_INICIAL_DO_WHISPER,
-                                    vad_filter=True, vad_parameters={"speech_pad_ms": FOLGA_EM_VOLTA_DA_FALA_MS})
-    return " ".join(trecho.text.strip() for trecho in trechos)
+    so_a_fala = _so_a_fala(amostras)
+    if so_a_fala is None:
+        return ""
+    wav_so_da_fala = _wav_em_bytes(so_a_fala)
+    for modelo in config.modelos_em_ordem:
+        try:
+            resposta = openrouter.post(config.url, json=_pedido_pro_openrouter(modelo, wav_so_da_fala),
+                                       timeout=config.tempo_maximo_por_modelo_s)
+        except requests.RequestException as erro:
+            print(f"[ouvido] {modelo} não respondeu: {type(erro).__name__}")
+            continue
+        if resposta.status_code != 200:
+            print(f"[ouvido] {modelo} devolveu HTTP {resposta.status_code}: {resposta.text[:200]}")
+            continue
+        texto_do_openrouter = resposta.json()["text"]
+        return texto_do_openrouter.strip()
+    raise OuvidoForaDoAr(f"nenhum dos {len(config.modelos_em_ordem)} modelos respondeu")
 
 
 def _sem_pontuacao(palavra):
